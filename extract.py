@@ -31,30 +31,30 @@ def get_access_token():
                     })
         return response['access_token']
 
+def yield_offres_france_travail(params=''):
+        """
+    Retourne les offres d'emploi disponibles sur la plateforme France Travail
+    en fonction des paramètres spécifiés (par exemple, le Code ROME).
 
-"""
-    La fonction permet de se faire retourner les offres d'emploi présentes sur la plateforme France Travail
-        en fonction des paramètres. (Ex : Code Rome). 
+    La liste des paramètres disponibles pour l'API est accessible ici : 
+    https://francetravail.io/produits-partages/catalogue/offres-emploi/documentation#/api-reference/operations/recupererListeOffre
 
-
-        On peut trouver la liste des paramètres sur ce lien : https://francetravail.io/produits-partages/catalogue/offres-emploi/documentation#/api-reference/operations/recupererListeOffre
-
-    Si pas de paramètre alors la fonction renvoie uniquement les dernières offres publiées.
+    Si aucun paramètre n'est fourni, la fonction renvoie uniquement les dernières offres publiées.
 
     Args:
-        params (dict): Un dictionnaire ou les clés sont les différents paramètres que puissent prendre l'API. Chaine de caractère vide par défaut
-    
+        params (dict): Un dictionnaire contenant les paramètres de recherche acceptés par l'API, tels que 
+            le code ROME ou l'indicateur d'adaptation pour les entreprises. Par défaut, une chaîne vide.
+
     Returns:
-        data['resultats'] (a list of dict): chaque dictionnaire représente une offre d'emploi
+        generator: Un générateur qui produit une liste de dictionnaires, où chaque dictionnaire représente 
+            une offre d'emploi avec ses détails spécifiques.
 
     Examples:
-        Example usage of the function, ideally with a Python REPL format.
+        Utilisation de la fonction avec des paramètres spécifiques :
 
-        >>> for offres in yield_offres_france_travail(params={'codeROME':'M1403', 'entreprisesAdaptees' : 'false'}):
-        >>>        pprint.pp(offres)
-    """
-def yield_offres_france_travail(params=''):
-
+        >>> for offre in yield_offres_france_travail(params={'codeROME': 'M1403', 'entreprisesAdaptees': 'false'}):
+        >>>     pprint.pp(offre)
+        """
         if len(params) > 0:
                 
                 query_params = '?'
