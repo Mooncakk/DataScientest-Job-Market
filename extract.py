@@ -13,22 +13,48 @@ import pprint
 # 'qualitesProfessionnelles', 'origineOffre', 'offresManqueCandidats'])
 #
 
+class APIError(Exception):
+    """Exception levée pour les erreurs liées à l'API avec status code inconnu."""
+    pass
+
+class NoContentError(APIError):
+    """Pas de contenu avec les paramètres indiqués (204)."""
+    pass
+
+class BadRequestError(APIError):
+    """Requête incorrecte(400)."""
+    pass
+
+class ServerError(APIError):
+    """Internal server error : impossible de joindre France Travail (500)."""
+    pass
+
 def post_request(lien, params):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return requests.post(lien, params=params, headers=headers).json()
 
 def get_request(lien, headers):
-        return requests.get(lien, headers=headers).json()
+        response = requests.get(lien, headers=headers)
+        if response.status_code == 204:
+                raise NoContentError("Aucun contenu disponible pour les paramètres fournis.")
+        elif response.status_code == 400:
+                raise BadRequestError("La requête est invalide. Vérifiez vos paramètres.")
+        elif response.status_code == 500:
+                raise ServerError("Erreur serveur. Veuillez réessayer plus tard.")
+        return response.json()
+
 
 def get_access_token():
-        response = post_request('https://entreprise.francetravail.fr/connexion/oauth2/access_token', 
-                    params={
+        url = 'https://entreprise.francetravail.fr/connexion/oauth2/access_token'
+        params={
                             'realm'                         : '/partenaire',
                             'grant_type'                    : 'client_credentials',
                             'client_id'                     : 'PAR_dashboardemploi_f80b1ec5d219063f6fde2c02b399657f48fc4fcb15671542e42fbf914ced66fa',
                             'client_secret'                 : 'aa36cce260bbace220de16acdaa7e93e3c719dbd6871e603e309d8bf1dc074df',
                             'scope'                         : 'o2dsoffre api_offresdemploiv2',
-                    })
+                    }
+        
+        response = post_request(url, params=params)
         return response['access_token']
 
 def yield_offres_france_travail(params=''):
@@ -55,21 +81,28 @@ def yield_offres_france_travail(params=''):
         >>> for offre in yield_offres_france_travail(params={'codeROME': 'M1403', 'entreprisesAdaptees': 'false'}):
         >>>     pprint.pp(offre)
         """
+        url = 'https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search'
+        headers = {
+                'Authorization' : 'Bearer ' + get_access_token(),
+                'Accept'         : 'application/json'
+                }
+        
         if len(params) > 0:
-                
-                query_params = '?'
-                i = 0
+                query_params, i  = '?', 0
+                keys, values = params.keys(), params.values()
 
                 for i in range(len(params)):
-                        query_params += list(params.keys())[i] + '=' + list(params.values())[i] + '&'                        
+                        query_params += list(keys)[i] + '=' + list(values)[i] + '&'                        
                 params = query_params
 
-        data = get_request('https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search' + params,
-                                        headers={
-                                                'Authorization' : 'Bearer ' + get_access_token(),
-                                                'Accept'         : 'application/json'
-                                                }
-                        )
+        try : 
+                data = get_request(url + params, headers=headers)
+        except NoContentError as e:
+                print(e)
+        except BadRequestError as e:
+                print(e)
+        except ServerError as e:
+                print(e)
 
         yield data['resultats']
 
