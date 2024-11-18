@@ -1,118 +1,128 @@
+from random import choice
+
 import requests
-import pprint
+from selectolax.lexbor import LexborHTMLParser
+from playwright.sync_api import sync_playwright
 
-# TO DO : mettre dans une variable global l'access token pour ne pas faire un appel a access token a chaque besoin d'afficher des offres. Un token est valable ^l
+#import pandas as pd
 
-# Récupération des données de France-Travail via API
-# Clé renvoyée par l'api par Offre
-# dict_keys(['id', 'intitule', 'description', 'dateCreation', 'dateActualisation', 'lieuTravail',
-# 'romeCode', 'romeLibelle', 'appellationlibelle', 'entreprise', 'typeContrat', 'typeContratLibelle', 
-# 'natureContrat', 'experienceExige', 'experienceLibelle', 'competences', 'salaire', 'dureeTravailLibelle', 
-# 'dureeTravailLibelleConverti', 'alternance', 'contact', 'agence', 'nombrePostes', 'accessibleTH', 
-# 'qualificationCode', 'qualificationLibelle', 'codeNAF', 'secteurActivite', 'secteurActiviteLibelle', 
-# 'qualitesProfessionnelles', 'origineOffre', 'offresManqueCandidats'])
-#
-
-class APIError(Exception):
-    """Exception levée pour les erreurs liées à l'API avec status code inconnu."""
-    pass
-
-class NoContentError(APIError):
-    """Pas de contenu avec les paramètres indiqués (204)."""
-    pass
-
-class BadRequestError(APIError):
-    """Requête incorrecte(400)."""
-    pass
-
-class ServerError(APIError):
-    """Internal server error : impossible de joindre France Travail (500)."""
-    pass
-
-def post_request(lien, params):
-        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        return requests.post(lien, params=params, headers=headers).json()
-
-def get_request(lien, headers):
-        response = requests.get(lien, headers=headers)
-        if response.status_code == 204:
-                raise NoContentError("Aucun contenu disponible pour les paramètres fournis.")
-        elif response.status_code == 400:
-                raise BadRequestError("La requête est invalide. Vérifiez vos paramètres.")
-        elif response.status_code == 500:
-                raise ServerError("Erreur serveur. Veuillez réessayer plus tard.")
-        return response.json()
+BASE_URL = 'https://fr.indeed.com'
+JOBS_BASE_URL = 'https://fr.indeed.com/viewjob?jk='
+URL = 'https://fr.indeed.com/jobs?q=emploi&l=france'
 
 
-def get_access_token():
-        url = 'https://entreprise.francetravail.fr/connexion/oauth2/access_token'
-        params={
-                            'realm'                         : '/partenaire',
-                            'grant_type'                    : 'client_credentials',
-                            'client_id'                     : 'PAR_dashboardemploi_f80b1ec5d219063f6fde2c02b399657f48fc4fcb15671542e42fbf914ced66fa',
-                            'client_secret'                 : 'aa36cce260bbace220de16acdaa7e93e3c719dbd6871e603e309d8bf1dc074df',
-                            'scope'                         : 'o2dsoffre api_offresdemploiv2',
-                    }
-        
-        response = post_request(url, params=params)
-        return response['access_token']
+def get_headers_list():
+    """Création d'une liste de user-agent"""
 
-def yield_offres_france_travail(params=''):
-        """
-    Retourne les offres d'emploi disponibles sur la plateforme France Travail
-    en fonction des paramètres spécifiés (par exemple, le Code ROME).
+    SCRAPEOPS_URL = 'http://headers.scrapeops.io/v1/browser-headers?api_key='
+    SCRAPEOPS_API_KEY = 'cf7a2b31-4c25-412c-bd51-5bdcc030a9d4'
+    response = requests.get(SCRAPEOPS_URL + SCRAPEOPS_API_KEY)
+    headers_list = response.json().get('result')
 
-    La liste des paramètres disponibles pour l'API est accessible ici : 
-    https://francetravail.io/produits-partages/catalogue/offres-emploi/documentation#/api-reference/operations/recupererListeOffre
-
-    Si aucun paramètre n'est fourni, la fonction renvoie uniquement les dernières offres publiées.
-
-    Args:
-        params (dict): Un dictionnaire contenant les paramètres de recherche acceptés par l'API, tels que 
-            le code ROME ou l'indicateur d'adaptation pour les entreprises. Par défaut, une chaîne vide.
-
-    Returns:
-        generator: Un générateur qui produit une liste de dictionnaires, où chaque dictionnaire représente 
-            une offre d'emploi avec ses détails spécifiques.
-
-    Examples:
-        Utilisation de la fonction avec des paramètres spécifiques :
-
-        >>> for offre in yield_offres_france_travail(params={'codeROME': 'M1403', 'entreprisesAdaptees': 'false'}):
-        >>>     pprint.pp(offre)
-        """
-        url = 'https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search'
-        headers = {
-                'Authorization' : 'Bearer ' + get_access_token(),
-                'Accept'         : 'application/json'
-                }
-        
-        if len(params) > 0:
-                query_params, i  = '?', 0
-                keys, values = params.keys(), params.values()
-
-                for i in range(len(params)):
-                        query_params += list(keys)[i] + '=' + list(values)[i] + '&'                        
-                params = query_params
-
-        try : 
-                data = get_request(url + params, headers=headers)
-        except NoContentError as e:
-                print(e)
-        except BadRequestError as e:
-                print(e)
-        except ServerError as e:
-                print(e)
-
-        yield data['resultats']
+    return headers_list
 
 
+def get_headers(headers_list):
+    """Selection d'un user-agent"""
+
+    return choice(headers_list)
 
 
-def main():
-        for offres in yield_offres_france_travail(params={'codeROME':'M1403'}):
-                pprint.pp(offres)
+headers_list = get_headers_list()
+headers = get_headers(headers_list)
 
 
-if __name__ == "__main__":
-        main()
+def get_jobs_sector():
+
+    """recupérer les secteurs d'activité et leur code dans un dictionaire"""
+
+    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=False)
+        browser.new_context(user_agent=user_agent)
+        page = browser.new_page()
+        page.goto(URL)
+        page.get_by_role('button', name='Secteurs').click()
+        page_content = LexborHTMLParser(page.content())
+        browser.close()
+
+    sector_codes = page_content.css('.css-1gcq455')
+    sector_names = page_content.css('.css-kmxpa3')
+    jobs_sectors = {}
+
+    for sector_name, sector_code in zip(sector_names, sector_codes):
+        jobs_sectors[sector_name.text()] = sector_code.attributes['value']
+
+    return jobs_sectors
+
+
+def get_page(url):
+    """recupère le contenu de la page"""""
+
+    proxy_param = {
+            'api_key': 'cf7a2b31-4c25-412c-bd51-5bdcc030a9d4',
+            'url': url
+            }
+
+    proxies = {'http': 'http://brd-customer-hl_47ba7ac8-zone-residential_proxy1-country-fr:7ttmv9pcs4v2@brd.superproxy.io:22225',
+            'https': 'http://brd-customer-hl_47ba7ac8-zone-residential_proxy1-country-fr:7ttmv9pcs4v2@brd.superproxy.io:22225'}
+    response = requests.get('https://proxy.scrapeops.io/v1/', headers=headers, params=proxy_param)
+
+    while response.status_code != 200:
+        print(f'Status Code {response.status_code} \nNouvel essai...')
+        response = requests.get('https://proxy.scrapeops.io/v1/', headers=headers, params=proxy_param)
+
+    page = LexborHTMLParser(response.text)
+
+    return page
+
+
+def get_job_url(page_content):
+    """Récupère l'id de l'offre d'emploi et retourne l'url de l'offre"""
+
+    jobs_url = []
+    job_id = page_content.css('ul li h2 a')
+    for id in job_id:
+        job_url = JOBS_BASE_URL+id.attributes['data-jk']
+        jobs_url.append(job_url)
+
+    return jobs_url
+
+
+def get_job_infos(page_content):
+    """Récupère les infos de l'offre d'emploi dans un dictionnaire"""
+
+    job_infos = {'titre_offre': page_content.css_first('.jobsearch-JobInfoHeader-title span').text(),
+                 'compagnie': page_content.css_first('.css-1ioi40n').text(deep=False),
+                 'lieu': page_content.css_first('.css-45str8 span').text()}
+    return job_infos
+
+
+def get_next_page(page_content):
+    """"Récupère le lien de la page suivante"""
+
+    if page_content.css('.css-akkh0a')[-1].attributes['data-testid']=='pagination-page-next':
+        next_page_url = page_content.css('.css-akkh0a')[-1].attributes['data-testid']
+        return BASE_URL+next_page_url
+
+
+if __name__=='__main__':
+
+    jobs_sectors_infos = get_jobs_sector()
+
+    for sector_name in jobs_sectors_infos:
+        sector_code = jobs_sectors_infos[sector_name]
+        url = f'https://fr.indeed.com/emplois?q=emploi&l=France&sc=0kf%3Acmpsec%28{sector_code}%29%3B'
+        #tester boucle while --> while True
+        page = get_page(url)
+        jobs_url = get_job_url(page)
+        print(jobs_url)
+
+        for url in jobs_url:
+            job_page = get_page(url)
+            get_job_infos(job_page)  #dictionnnaire, enregistrer les infos dans un csv
+    
+        if get_next_page(page):
+            next_ = get_next_page(page)
+            page = get_page(next_)
