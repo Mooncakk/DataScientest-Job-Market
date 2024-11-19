@@ -1,5 +1,6 @@
 import requests
 import pprint
+import csv
 
 # TO DO : mettre dans une variable global l'access token pour ne pas faire un appel a access token a chaque besoin d'afficher des offres. Un token est valable ^l
 
@@ -49,8 +50,8 @@ def get_access_token():
         params={
                             'realm'                         : '/partenaire',
                             'grant_type'                    : 'client_credentials',
-                            'client_id'                     : 'PAR_dashboardemploi_f80b1ec5d219063f6fde2c02b399657f48fc4fcb15671542e42fbf914ced66fa',
-                            'client_secret'                 : 'aa36cce260bbace220de16acdaa7e93e3c719dbd6871e603e309d8bf1dc074df',
+                            'client_id'                     : 'PAR_dashboardemploi_f99386bde90949946d6513fd76b3d48567c931283b93d35217068957c73245d4',
+                            'client_secret'                 : '88c04482d5a4149bdf3be704350c7e82c8840f4167b665996cea737fe6000a8d',
                             'scope'                         : 'o2dsoffre api_offresdemploiv2',
                     }
         
@@ -98,20 +99,57 @@ def yield_offres_france_travail(params=''):
         try : 
                 data = get_request(url + params, headers=headers)
         except NoContentError as e:
-                print(e)
+                raise NoContentError
+                
         except BadRequestError as e:
                 print(e)
         except ServerError as e:
                 print(e)
 
-        yield data['resultats']
+        for offre in data['resultats']:
+               yield offre
 
 
-
+def france_travail_toCsv(offres, csv_name):
+       """ Prends une liste d'offres en paramètre et ajoute l'intitulé, le nom de l'entreprise le lieu de travail et le codeNAF dans un CSV"""
+       
+       # A pour append ici
+       with open(csv_name, 'a', newline='') as csvfile:
+              csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
+              for offre in offres:
+                     csv_offres.writerow([
+                            offre.get('intitule', None),
+                            offre.get('entreprise', {}).get('nom', None),
+                            offre.get('lieuTravail', {}).get('codePostal', None), 
+                            offre.get('codeNAF', None), 
+                            offre.get('secteurActivite', None)
+                            ])
+              
 
 def main():
-        for offres in yield_offres_france_travail(params={'codeROME':'M1403'}):
-                pprint.pp(offres)
+        
+        
+        
+        step = 150
+        start = 0
+
+        while True:   
+                
+                try:           
+                        france_travail_toCsv(   yield_offres_france_travail(params={
+                                        'codeROME':'M1403', 
+                                        'range': f'{start}-{start + step - 1}'
+                                        }), 'offres.csv')   
+                except NoContentError as e:
+                       print(e)
+                       break
+
+                
+                start += step
+        
+
+                
+                
 
 
 if __name__ == "__main__":
