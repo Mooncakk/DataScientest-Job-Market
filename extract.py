@@ -3,8 +3,8 @@ from random import choice
 import requests
 from selectolax.lexbor import LexborHTMLParser
 from playwright.sync_api import sync_playwright
+import pandas as pd
 
-#import pandas as pd
 
 BASE_URL = 'https://fr.indeed.com'
 JOBS_BASE_URL = 'https://fr.indeed.com/viewjob?jk='
@@ -39,11 +39,13 @@ def get_jobs_sector():
     user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False)
+
+        browser = pw.firefox.launch()
         browser.new_context(user_agent=user_agent)
         page = browser.new_page()
         page.goto(URL)
-        page.get_by_role('button', name='Secteurs').click()
+        page.wait_for_load_state('networkidle')
+        page.get_by_role("button", name="Secteurs filter").click()
         page_content = LexborHTMLParser(page.content())
         browser.close()
 
@@ -70,7 +72,8 @@ def get_page(url):
     response = requests.get('https://proxy.scrapeops.io/v1/', headers=headers, params=proxy_param)
 
     while response.status_code != 200:
-        print(f'Status Code {response.status_code} \nNouvel essai...')
+        print(f'Status Code {response.status_code}\n'
+              f'Nouvel essai...')
         response = requests.get('https://proxy.scrapeops.io/v1/', headers=headers, params=proxy_param)
 
     page = LexborHTMLParser(response.text)
@@ -106,23 +109,40 @@ def get_next_page(page_content):
         next_page_url = page_content.css('.css-akkh0a')[-1].attributes['data-testid']
         return BASE_URL+next_page_url
 
+def  create_csv(data):
+    """Crée un fichier csv en prenant en entrée les infos des offres emplois"""
+
+    df = pd.DataFrame(data)
+    df.to_csv('indeed_jobs.csv', index=False)
+
+
+
 
 if __name__=='__main__':
 
     jobs_sectors_infos = get_jobs_sector()
+    all_jobs_infos = []
 
     for sector_name in jobs_sectors_infos:
         sector_code = jobs_sectors_infos[sector_name]
         url = f'https://fr.indeed.com/emplois?q=emploi&l=France&sc=0kf%3Acmpsec%28{sector_code}%29%3B'
-        #tester boucle while --> while True
-        page = get_page(url)
-        jobs_url = get_job_url(page)
-        print(jobs_url)
+        pagination = True
 
-        for url in jobs_url:
-            job_page = get_page(url)
-            get_job_infos(job_page)  #dictionnnaire, enregistrer les infos dans un csv
-    
-        if get_next_page(page):
-            next_ = get_next_page(page)
-            page = get_page(next_)
+        while pagination:
+            page = get_page(url)
+            jobs_url = get_job_url(page)
+
+            for url in jobs_url:
+                job_page = get_page(url)
+                job_infos = get_job_infos(job_page)
+                job_infos['secteur'] = sector_name
+                all_jobs_infos.append(job_infos)
+
+            if get_next_page(page):
+                next_ = get_next_page(page)
+                page = get_page(next_)
+            else:
+                pagination = False
+
+    create_csv(all_jobs_infos)
+
