@@ -1,6 +1,7 @@
 import requests
 import pprint
 import csv
+from datetime import date
 
 # TO DO : mettre dans une variable global l'access token pour ne pas faire un appel a access token a chaque besoin d'afficher des offres. Un token est valable ^l
 
@@ -113,7 +114,7 @@ def yield_offres_france_travail(params=''):
 def france_travail_toCsv(offres, csv_name):
        """ Prends une liste d'offres en paramètre et ajoute l'intitulé, le nom de l'entreprise le lieu de travail et le codeNAF dans un CSV"""
        
-       # A pour append ici
+       # a pour append ici
        with open(csv_name, 'a', newline='') as csvfile:
               csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
               for offre in offres:
@@ -125,32 +126,21 @@ def france_travail_toCsv(offres, csv_name):
                             offre.get('secteurActivite', None)
                             ])
               
-
 def main():
-        
-        
         
         step = 150
         start = 0
-
         while True:   
-                
                 try:           
                         france_travail_toCsv(   yield_offres_france_travail(params={
                                         'codeROME':'M1403', 
                                         'range': f'{start}-{start + step - 1}'
-                                        }), 'offres.csv')   
+                                        }), csv_name= f'offres{date.today()}.csv')   
                 except NoContentError as e:
                        print(e)
                        break
-
                 
                 start += step
         
-
-                
-                
-
-
 if __name__ == "__main__":
         main()
