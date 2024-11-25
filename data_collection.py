@@ -23,15 +23,15 @@ def get_jobs_dict(jobs_list, jobs_dict):
 
     for job in jobs_list:
 
-        data = {'id': job.get('id', ''),
-                'title': job.get('title', ''),
-                'company': job['company'].get('display_name', ''),
-                'location': job['location'].get('area', ''),
-                'category': job['category'].get('label', ''),
-                'description': job.get('description', ''),
-                'created': job.get('created', ''),
-                'salary_max': job.get('salary_max', ''),
-                'salary_min': job.get('salary_min', ''),
+        data = {'id': job.get('id'),
+                'title': job.get('title'),
+                'company': job['company'].get('display_name'),
+                'location': job['location'].get('area'),
+                'category': job['category'].get('label'),
+                'description': job.get('description'),
+                'created': job.get('created'),
+                'salary_max': job.get('salary_max'),
+                'salary_min': job.get('salary_min'),
                 'contract_type': job.get('contract_type')
                 }
         jobs_dict.append(data)
@@ -39,7 +39,7 @@ def get_jobs_dict(jobs_list, jobs_dict):
 def save_json_file(data):
     """Crée un fichier JSON contenant les offres d'emploi issu des requêtes vers l'API"""
 
-    with open('Adzuna_Jobs_listing.json', 'a', encoding='utf-8') as jsonfile:
+    with open('Adzuna_Jobs_listing2.json', 'w', encoding='utf-8') as jsonfile:
         json.dump(data, jsonfile, indent=4)
 
     return print('Fichier Adzuna_Jobs_listing.json créé')
@@ -71,4 +71,4 @@ if __name__ == '__main__':
             print('Fin de la collecte')
 
     save_json_file(jobs_data)
-    data_to_csv(jobs_data)
+    #data_to_csv(jobs_data)
