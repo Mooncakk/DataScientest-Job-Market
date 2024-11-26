@@ -111,25 +111,33 @@ def yield_offres_france_travail(params=''):
                yield offre
 
 
-def france_travail_toCsv(offres, csv_name):
-       """ Prends une liste d'offres en paramètre et ajoute l'intitulé, le nom de l'entreprise le lieu de travail et le codeNAF dans un CSV"""
-       
-       # a pour append ici
-       with open(csv_name, 'a', newline='') as csvfile:
-              csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
-              for offre in offres:
-                     csv_offres.writerow([
-                            offre.get('intitule', None),                            
-                            offre.get('codeROME', None),
-                            offre.get('codeNAF', None), 
-                            offre.get('typeContrat', None),
-                            offre.get('lieuTravail', {}).get('codePostal', None), 
-                            offre.get('entreprise', {}).get('nom', None),
-                            offre.get('dateCreation', None)
-                            ,
-                            ''.join(offre.get('description', None).replace('\n',' ')), 
-                            offre.get('salaire', None), 
-                            ])
+def france_travail_toCsv(params, csv_name=f'offres{date.today()}.csv'):
+        """ Prends une liste d'offres en paramètre et ajoute l'intitulé, le nom de l'entreprise le lieu de travail et le codeNAF dans un CSV"""
+        step = 150
+        start = 0
+
+        with open(csv_name, 'a', newline='') as csvfile:
+                csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
+                # Tant qu'il est possible d'insérer en base
+                while True:  
+                        # a pour append ici
+                        try:
+                                for offre in yield_offres_france_travail({'range': f'{start}-{start + step - 1}'}  | params):
+                                        csv_offres.writerow([
+                                                offre.get('intitule', None),                            
+                                                offre.get('romeCode', None),
+                                                offre.get('codeNAF', None), 
+                                                offre.get('typeContrat', None),
+                                                offre.get('lieuTravail', {}).get('codePostal', None), 
+                                                offre.get('entreprise', {}).get('nom', None),
+                                                offre.get('dateCreation', None), 
+                                                offre.get('salaire', None),                                                
+                                                ''.join(offre.get('description', None).replace('\n',' ')) 
+                                                ])
+                        except Exception as e:
+                                print(e)                              
+                                break
+                        start += step
 
 def getall_code_rome():
         """Récupère tous les codes Romes du réferentiel de France TRavail.
@@ -185,19 +193,9 @@ def getall_type_contrat():
 
 def main():
         """for offre in yield_offres_france_travail():
-               pprint.pp(offre)"""
-        step = 150
-        start = 0
-        while True:   
-                try:           
-                        france_travail_toCsv(yield_offres_france_travail(params={
-                                        'range': f'{start}-{start + step - 1}'
-                                        }), csv_name= f'offres{date.today()}.csv')   
-                except Exception as e:
-                       print(e)
-                       break
-
-                start += step
-    
+                pprint.pp(offre)"""
+        
+        france_travail_toCsv(params={'codeROME': 'M1403'}) 
+          
 if __name__ == "__main__":
         main()
