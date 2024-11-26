@@ -43,6 +43,7 @@ def get_request(lien, headers):
                 raise BadRequestError("La requête est invalide. Vérifiez vos paramètres.")
         elif response.status_code == 500:
                 raise ServerError("Erreur serveur. Veuillez réessayer plus tard.")
+        
         return response.json()
 
 
@@ -101,7 +102,6 @@ def yield_offres_france_travail(params=''):
                 data = get_request(url + params, headers=headers)
         except NoContentError as e:
                 raise NoContentError
-                
         except BadRequestError as e:
                 print(e)
         except ServerError as e:
@@ -119,28 +119,85 @@ def france_travail_toCsv(offres, csv_name):
               csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
               for offre in offres:
                      csv_offres.writerow([
-                            offre.get('intitule', None),
-                            offre.get('entreprise', {}).get('nom', None),
-                            offre.get('lieuTravail', {}).get('codePostal', None), 
+                            offre.get('intitule', None),                            
+                            offre.get('codeROME', None),
                             offre.get('codeNAF', None), 
-                            offre.get('secteurActivite', None)
+                            offre.get('typeContrat', None),
+                            offre.get('lieuTravail', {}).get('codePostal', None), 
+                            offre.get('entreprise', {}).get('nom', None),
+                            offre.get('dateCreation', None)
+                            ,
+                            ''.join(offre.get('description', None).replace('\n',' ')), 
+                            offre.get('salaire', None), 
                             ])
-              
-def main():
+
+def getall_code_rome():
+        """Récupère tous les codes Romes du réferentiel de France TRavail.
+        Un code NAF représente un métier
+        """
+        url = 'https://api.francetravail.io/partenaire/offresdemploi/v2/referentiel/metiers'
+        headers = {
+                'Authorization' : 'Bearer ' + get_access_token(),
+                'Accept'         : 'application/json'
+                }
+        metiers = get_request(url, headers)
+        for metier in metiers:
+               yield metier
         
+def getall_code_naf():
+        """ Récupère tous les codes NAF du réferentiel de France Travail.
+        Un code NAF représente  un secteur d'activité
+        """
+        url = 'https://api.francetravail.io/partenaire/offresdemploi/v2/referentiel/nafs'
+        headers = {
+                'Authorization' : 'Bearer ' + get_access_token(),
+                'Accept'         : 'application/json'
+                }
+        nafs = get_request(url, headers)
+        for naf in nafs:
+               yield naf
+
+def getall_communes():
+        """ Récupère toutes les communes avec le code du departement et le code postal
+        """
+        url = 'https://api.francetravail.io/partenaire/offresdemploi/v2/referentiel/communes'
+        headers = {
+                'Authorization' : 'Bearer ' + get_access_token(),
+                'Accept'         : 'application/json'
+                }
+        communes = get_request(url, headers)
+        for commune in communes:
+               yield communes
+
+
+def getall_type_contrat():
+        """ Récupère tous les types de contrats
+        """
+        url = 'https://api.francetravail.io/partenaire/offresdemploi/v2/referentiel/typesContrats'
+        headers = {
+                'Authorization' : 'Bearer ' + get_access_token(),
+                'Accept'         : 'application/json'
+                }
+        contrats = get_request(url, headers)
+        for contrat in contrats:
+               yield contrat
+
+
+def main():
+        """for offre in yield_offres_france_travail():
+               pprint.pp(offre)"""
         step = 150
         start = 0
         while True:   
                 try:           
-                        france_travail_toCsv(   yield_offres_france_travail(params={
-                                        'codeROME':'M1403', 
+                        france_travail_toCsv(yield_offres_france_travail(params={
                                         'range': f'{start}-{start + step - 1}'
                                         }), csv_name= f'offres{date.today()}.csv')   
-                except NoContentError as e:
+                except Exception as e:
                        print(e)
                        break
-                
+
                 start += step
-        
+    
 if __name__ == "__main__":
         main()
