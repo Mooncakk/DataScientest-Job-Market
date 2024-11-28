@@ -2,6 +2,8 @@ import requests
 import pprint
 import csv
 from datetime import date
+import time
+import load
 
 # TO DO : mettre dans une variable global l'access token pour ne pas faire un appel a access token a chaque besoin d'afficher des offres. Un token est valable ^l
 
@@ -41,11 +43,11 @@ def get_request(lien, headers):
                 raise NoContentError("Aucun contenu disponible pour les paramètres fournis.")
         elif response.status_code == 400:
                 raise BadRequestError("La requête est invalide. Vérifiez vos paramètres.")
+                
         elif response.status_code == 500:
                 raise ServerError("Erreur serveur. Veuillez réessayer plus tard.")
         
         return response.json()
-
 
 def get_access_token():
         url = 'https://entreprise.francetravail.fr/connexion/oauth2/access_token'
@@ -60,8 +62,14 @@ def get_access_token():
         response = post_request(url, params=params)
         return response['access_token']
 
-def yield_offres_france_travail(params=''):
+
+############################################"
+# Fonctions permettant de boucler sur l'API
+#########################################"
+
+def yield_offre_france_travail(params=''):
         """
+        !! Ne fait pas la pagination !!
     Retourne les offres d'emploi disponibles sur la plateforme France Travail
     en fonction des paramètres spécifiés (par exemple, le Code ROME).
 
@@ -100,45 +108,73 @@ def yield_offres_france_travail(params=''):
 
         try : 
                 data = get_request(url + params, headers=headers)
+                for offre in data['resultats']:
+                        yield offre
         except NoContentError as e:
+
+                print("pas de données pour la requete : " + url + params)
                 raise NoContentError
         except BadRequestError as e:
                 print(e)
+                
         except ServerError as e:
                 print(e)
+        if len(data['resultats']) is None:
+                print("Pas de données récupérées")
 
-        for offre in data['resultats']:
-               yield offre
+def france_travail_yield(params):
+    """ Permet de yield sur des offres France travail en foncton des paramètres"""
+    step = 150
+    start = 0
+    # Tant qu'il est possible d'insérer en base
+    
+    while True:  
+        
+            # a pour append ici
+        try:
+            for offre in yield_offre_france_travail({'range': f'{start}-{start + step - 1}'}  | params):  
+                yield offre 
+                            
+        except Exception as e:
+                print('Erreur dans France travail Yield ' )
+                break
+        start += step
+        if start == 3150:
+            break
+
+############################################"
+# Fonctions d'insérer dans un CSV
+########################'#################"
+
+def france_travail_to_CSV(conn, cur, csv_name=f'offres{date.today()}.csv'):    
+    # Récupère tous les codes ROMES
+    cur.execute(f"SELECT * from Metier ")
+    # Requete sur l'API France Travail en modifiant le paramètre Code ROME et insère dans le CSV
+    with open(csv_name, 'a', newline='') as csvfile:
+        csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
+        try: 
+            for code_rome in cur.fetchall():
+                for offre in france_travail_yield(params={'codeROME': code_rome[0]}):
+                    csv_offres.writerow([
+                        offre.get('romeCode', None), 
+                        offre.get('codeNAF', None), 
+                        offre.get('typeContrat', None), 
+                        offre.get('lieuTravail', {}).get('commune', None) ,
+                        offre.get('intitule', None),
+                        offre.get('entreprise', {}).get('nom', None),
+                        offre.get('dateCreation', None), 
+                        str(offre.get('salaire',{}).get('libelle', None)) + ' ' + str(offre.get('salaire',{}).get('commentaire', None)) ,                                                
+                        (offre.get('description', None) or '').replace('\n',' ')
+                    ])
+        except Exception as e:                 
+            print(f"Erreur lors du lancement de France_Travail_to_CSV dans extract.py : {e} ")   
 
 
-def france_travail_toCsv(params, csv_name=f'offres{date.today()}.csv'):
-        """ Prends une liste d'offres en paramètre et ajoute l'intitulé, le nom de l'entreprise le lieu de travail et le codeNAF dans un CSV"""
-        step = 150
-        start = 0
 
-        with open(csv_name, 'a', newline='') as csvfile:
-                csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
-                # Tant qu'il est possible d'insérer en base
-                while True:  
-                        # a pour append ici
-                        try:
-                                for offre in yield_offres_france_travail({'range': f'{start}-{start + step - 1}'}  | params):
-                                        csv_offres.writerow([
-                                                offre.get('intitule', None),                            
-                                                offre.get('romeCode', None),
-                                                offre.get('codeNAF', None), 
-                                                offre.get('typeContrat', None),
-                                                offre.get('lieuTravail', {}).get('codePostal', None), 
-                                                offre.get('entreprise', {}).get('nom', None),
-                                                offre.get('dateCreation', None), 
-                                                offre.get('salaire', None),                                                
-                                                ''.join(offre.get('description', None).replace('\n',' ')) 
-                                                ])
-                        except Exception as e:
-                                print(e)                              
-                                break
-                        start += step
 
+######################################
+# Fonctions liées aux référentiels
+####################################
 def getall_code_rome():
         """Récupère tous les codes Romes du réferentiel de France TRavail.
         Un code NAF représente un métier
@@ -175,8 +211,7 @@ def getall_communes():
                 }
         communes = get_request(url, headers)
         for commune in communes:
-               yield communes
-
+               yield commune
 
 def getall_type_contrat():
         """ Récupère tous les types de contrats
@@ -193,9 +228,17 @@ def getall_type_contrat():
 
 def main():
         """for offre in yield_offres_france_travail():
-                pprint.pp(offre)"""
+                pprint.pp(offre)
+                france_travail_toCsv(params={'codeROME': 'M1403'})"""
         
-        france_travail_toCsv(params={'codeROME': 'M1403'}) 
+        
+        conn = load.postgres_bdd_auth(database="jobmarket",
+                            host="localhost",
+                            user="postgres",
+                            password="postgres",
+                            port="5432")
+        cur = load.create_cursor(conn)
+        france_travail_to_CSV(conn,cur)
           
 if __name__ == "__main__":
         main()
