@@ -105,14 +105,13 @@ def yield_offre_france_travail(params=''):
                     yield offre
         
         except NoContentError as n :
-            print(n)
+            print(e)
         except BadRequestError as b :
             print(b)
         except Exception as e:
-                print(e)
-                print(url + params)
-                print(data)
-                raise Exception(e)
+            print(e)
+            print(url + params)
+            print(data)
 
         if len(data['resultats']) is None:
                 print("Pas de données récupérées")
