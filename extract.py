@@ -1,7 +1,9 @@
 import requests
 import pprint
 import csv
-from datetime import date
+from datetime import date, datetime
+import time
+import load
 
 # TO DO : mettre dans une variable global l'access token pour ne pas faire un appel a access token a chaque besoin d'afficher des offres. Un token est valable ^l
 
@@ -35,17 +37,17 @@ def post_request(lien, params):
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         return requests.post(lien, params=params, headers=headers).json()
 
-def get_request(lien, headers):
-        response = requests.get(lien, headers=headers)
+def get_request(lien, headers, params={}):
+        response = requests.get(lien,params=params ,headers=headers)
         if response.status_code == 204:
-                raise NoContentError("Aucun contenu disponible pour les paramètres fournis.")
+                raise NoContentError("Aucun contenu disponible pour les paramètres fournis." + str(params))
         elif response.status_code == 400:
-                raise BadRequestError("La requête est invalide. Vérifiez vos paramètres.")
+                raise BadRequestError("La requête est invalide. Vérifiez vos paramètres." + str(params))
+                
         elif response.status_code == 500:
                 raise ServerError("Erreur serveur. Veuillez réessayer plus tard.")
         
         return response.json()
-
 
 def get_access_token():
         url = 'https://entreprise.francetravail.fr/connexion/oauth2/access_token'
@@ -60,8 +62,14 @@ def get_access_token():
         response = post_request(url, params=params)
         return response['access_token']
 
-def yield_offres_france_travail(params=''):
+
+############################################"
+# Fonctions permettant de boucler sur l'API
+#########################################"
+
+def yield_offre_france_travail(params=''):
         """
+        !! Ne fait pas la pagination !!
     Retourne les offres d'emploi disponibles sur la plateforme France Travail
     en fonction des paramètres spécifiés (par exemple, le Code ROME).
 
@@ -89,56 +97,94 @@ def yield_offres_france_travail(params=''):
                 'Authorization' : 'Bearer ' + get_access_token(),
                 'Accept'         : 'application/json'
                 }
-        
-        if len(params) > 0:
-                query_params, i  = '?', 0
-                keys, values = params.keys(), params.values()
-
-                for i in range(len(params)):
-                        query_params += list(keys)[i] + '=' + list(values)[i] + '&'                        
-                params = query_params
-
         try : 
-                data = get_request(url + params, headers=headers)
-        except NoContentError as e:
-                raise NoContentError
-        except BadRequestError as e:
+                
+                data = get_request(url, params=params, headers=headers)
+                #print(len(data))
+                for offre in data['resultats']:
+                    yield offre
+        
+        except NoContentError as n :
+            print(n)
+        except BadRequestError as b :
+            print(b)
+        except Exception as e:
                 print(e)
-        except ServerError as e:
-                print(e)
+                print(url + params)
+                print(data)
+                raise Exception(e)
 
-        for offre in data['resultats']:
-               yield offre
+        if len(data['resultats']) is None:
+                print("Pas de données récupérées")
 
+def france_travail_yield(params):
+    """ Permet de yield sur des offres France travail en foncton des paramètres"""
+    step = 150
+    start = 0
+    # Tant qu'il est possible d'insérer en base
+    
+    while True:  
+        try:
+            if start == 3149:
+                break
+            for offre in yield_offre_france_travail({'range': f'{start}-{start + step - 1}'} | (params)): 
+                yield offre 
+                            
+        except Exception as e:
+                """print('Erreur dans France travail Yield ' )
+                print(e)"""
+                # permet de ne pas incrémententer start si la requête ne renvoie rien
+                break
+        start += step
+        
 
-def france_travail_toCsv(params, csv_name=f'offres{date.today()}.csv'):
-        """ Prends une liste d'offres en paramètre et ajoute l'intitulé, le nom de l'entreprise le lieu de travail et le codeNAF dans un CSV"""
-        step = 150
-        start = 0
+############################################"
+# Fonctions d'insérer dans un CSV
+########################'#################"
 
-        with open(csv_name, 'a', newline='') as csvfile:
-                csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
-                # Tant qu'il est possible d'insérer en base
-                while True:  
-                        # a pour append ici
-                        try:
-                                for offre in yield_offres_france_travail({'range': f'{start}-{start + step - 1}'}  | params):
-                                        csv_offres.writerow([
-                                                offre.get('intitule', None),                            
-                                                offre.get('romeCode', None),
-                                                offre.get('codeNAF', None), 
-                                                offre.get('typeContrat', None),
-                                                offre.get('lieuTravail', {}).get('codePostal', None), 
-                                                offre.get('entreprise', {}).get('nom', None),
-                                                offre.get('dateCreation', None), 
-                                                offre.get('salaire', None),                                                
-                                                ''.join(offre.get('description', None).replace('\n',' ')) 
-                                                ])
-                        except Exception as e:
-                                print(e)                              
-                                break
-                        start += step
+def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):    
+    # Récupère tous les codes ROMES et type contrat, On peut avoir max que 3150 résultats max par requete, pagination inclus
+    cur1 = load.create_cursor(conn)
+    cur1.execute("SELECT * from Type_contrat")
+    types_contrat = cur1.fetchall()
 
+    cur2 = load.create_cursor(conn)
+    cur2.execute("SELECT * from Metier ")
+    codes_rome = cur2.fetchall()
+
+    buffer = []
+        
+    # Requete sur l'API France Travail en modifiant le paramètre Code ROME et insère dans le CSV
+    with open(csv_name, 'a', newline='') as csvfile:
+        csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
+        try: 
+            for type_contrat in  types_contrat:
+                print(type_contrat[0] + str(datetime.now()))
+                for code_rome in codes_rome:
+                    #time.sleep(0.05)
+                    for offre in france_travail_yield(params={'codeROME': code_rome[0], 'typeContrat' : type_contrat[0]}):
+                        buffer.append([
+                        offre.get('romeCode', None), 
+                        offre.get('codeNAF', None), 
+                        offre.get('typeContrat', None), 
+                        offre.get('lieuTravail', {}).get('commune', None) ,
+                        offre.get('intitule', None),
+                        offre.get('entreprise', {}).get('nom', None),
+                        offre.get('dateCreation', None), 
+                        str(offre.get('salaire',{}).get('libelle', None)) + ' ' + str(offre.get('salaire',{}).get('commentaire', None)) + ' ' + str(offre.get('salaire',{}).get('complement1', None)) + ' ' + str(offre.get('salaire',{}).get('complement2', None))  ,                                                
+                        (offre.get('description', None) or '').replace('\n',' ')
+                        
+                    ])
+                    # ecriture par lot 
+                    if len(buffer) >= 25:  
+                        csv_offres.writerows(buffer)
+                        buffer = []
+        except Exception as e:                 
+            print(f"Erreur lors du lancement de France_Travail_to_CSV dans extract.py : {e} ")   
+
+######################################
+# Fonctions liées aux référentiels
+####################################
 def getall_code_rome():
         """Récupère tous les codes Romes du réferentiel de France TRavail.
         Un code NAF représente un métier
@@ -148,7 +194,7 @@ def getall_code_rome():
                 'Authorization' : 'Bearer ' + get_access_token(),
                 'Accept'         : 'application/json'
                 }
-        metiers = get_request(url, headers)
+        metiers = get_request(url, headers=headers)
         for metier in metiers:
                yield metier
         
@@ -161,7 +207,7 @@ def getall_code_naf():
                 'Authorization' : 'Bearer ' + get_access_token(),
                 'Accept'         : 'application/json'
                 }
-        nafs = get_request(url, headers)
+        nafs = get_request(url, headers=headers)
         for naf in nafs:
                yield naf
 
@@ -173,10 +219,9 @@ def getall_communes():
                 'Authorization' : 'Bearer ' + get_access_token(),
                 'Accept'         : 'application/json'
                 }
-        communes = get_request(url, headers)
+        communes = get_request(url, headers=headers)
         for commune in communes:
-               yield communes
-
+               yield commune
 
 def getall_type_contrat():
         """ Récupère tous les types de contrats
@@ -186,16 +231,23 @@ def getall_type_contrat():
                 'Authorization' : 'Bearer ' + get_access_token(),
                 'Accept'         : 'application/json'
                 }
-        contrats = get_request(url, headers)
+        contrats = get_request(url, headers=headers)
         for contrat in contrats:
                yield contrat
 
-
 def main():
         """for offre in yield_offres_france_travail():
-                pprint.pp(offre)"""
+                pprint.pp(offre)
+                france_travail_toCsv(params={'codeROME': 'M1403'})"""
         
-        france_travail_toCsv(params={'codeROME': 'M1403'}) 
+        
+        conn = load.postgres_bdd_auth(database="jobmarket",
+                            host="localhost",
+                            user="postgres",
+                            password="postgres",
+                            port="5432")
+        
+        france_travail_to_CSV(conn)
           
 if __name__ == "__main__":
         main()
