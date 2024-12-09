@@ -107,7 +107,51 @@ def insert_France_travail_to_BD(conn, csv_name=f"offres{date.today()}_processed.
     finally:
         conn.close()
     
-        
+def get_most_recruiting_sector(conn):
+    cur = create_cursor(conn)
+    cur.execute("SELECT s.code_naf, s.libelle AS secteur, COUNT(o.id_offre) AS nombre_offres \
+                FROM Offre o JOIN Secteur s ON o.code_naf = s.code_naf \
+                GROUP BY \
+                    s.code_naf, s.libelle \
+                ORDER BY  \
+                    nombre_offres DESC\
+                LIMIT 5;")
+    return cur
+
+def get_most_recruiting_job(conn):
+    cur = create_cursor(conn)
+    cur.execute("SELECT m.code_rome, m.libelle AS metier, COUNT(o.id_offre) AS nombre_offres \
+    FROM Offre o \
+    JOIN Metier m ON o.code_rome = m.code_rome \
+    GROUP BY m.code_rome, m.libelle \
+    ORDER BY nombre_offres DESC \
+    LIMIT 10;")
+    return cur
+
+def get_most_recruiting_city(conn):
+    cur = create_cursor(conn)
+    cur.execute("SELECT c.code_commune, c.libelle AS ville, COUNT(o.id_offre) AS nombre_offres \
+    FROM Offre o \
+    JOIN Commune c ON o.code_commune = c.code_commune \
+    GROUP BY c.code_commune, c.libelle \
+    ORDER BY nombre_offres DESC LIMIT 10")
+    return cur
+
+def get_data_engineer_most_recruiting_city(conn):
+    cur = create_cursor(conn)
+    cur.execute("SELECT c.code_commune, c.libelle AS ville, COUNT(o.id_offre) AS nombre_offres \
+    FROM Offre o \
+    JOIN Commune c ON o.code_commune = c.code_commune \
+    WHERE o.intitule ILIKE '%data engineer%' OR  \
+    o.intitule ILIKE '%ingénieur data%' OR  \
+    o.description_ ILIKE '%data engineer%' OR  \
+    o.description_ ILIKE '%ingénieur data%' OR  \
+    o.description_ ILIKE '%data engineering%' OR \
+    o.code_rome = 'M1811' \
+    GROUP BY c.code_commune, c.libelle \
+    ORDER BY nombre_offres DESC \
+    LIMIT 10;")
+    return cur
 
 def main():
     
@@ -116,13 +160,40 @@ def main():
                             user="postgres",
                             password="postgres",
                             port="5432")
+    cur_secteur = get_most_recruiting_sector(conn)
+    for secteur in cur_secteur.fetchall():
+        print(secteur)
+    conn.commit()
+    print("#############Job qui recrute le plus##############")
+    cur_jobs = get_most_recruiting_job(conn)
+    for job in cur_jobs.fetchall():
+        print(job)
+    conn.commit()
+
+    print("############# Villes qui recrutent le plus ##############")
+    cur_city = get_most_recruiting_city(conn)
+    for city in cur_city.fetchall():
+        print(city)
+    conn.commit()
+
+    print("############# Villes qui recrutent le plus de DE ##############")
+    cur_city_de = get_data_engineer_most_recruiting_city(conn)
+    for city in cur_city_de.fetchall():
+        print(city)
+    conn.commit()
+
+
+
+
     """cur = create_cursor(conn)
     cur.execute(
                     "INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",
                     ('50015', 50272, 'ANNOVILLE', '50')
                 )
     conn.commit()"""
-    insert_France_travail_to_BD(conn)
+    #insert_France_travail_to_BD(conn)
+    
+    
 
 
 if __name__ == "__main__":

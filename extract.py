@@ -146,10 +146,8 @@ def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):
     cur1 = load.create_cursor(conn)
     cur1.execute("SELECT * from Type_contrat")
     types_contrat = cur1.fetchall()
-
     cur2 = load.create_cursor(conn)
-    cur2.execute("SELECT * from Metier ")
-    codes_rome = cur2.fetchall()
+   
 
     buffer = []
         
@@ -159,8 +157,10 @@ def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):
         try: 
             for type_contrat in  types_contrat:
                 print(type_contrat[0] + str(datetime.now()))
+                cur2.execute("SELECT * from Metier ")
+                codes_rome = cur2.fetchall()
                 for code_rome in codes_rome:
-                    #time.sleep(0.05)
+                    time.sleep(0.05)
                     for offre in france_travail_yield(params={'codeROME': code_rome[0], 'typeContrat' : type_contrat[0]}):
                         buffer.append([
                         offre.get('romeCode', None), 
@@ -247,6 +247,7 @@ def main():
                             port="5432")
         
         france_travail_to_CSV(conn)
+        
           
 if __name__ == "__main__":
         main()
