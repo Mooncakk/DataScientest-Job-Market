@@ -137,9 +137,9 @@ def france_travail_yield(params):
         start += step
         
 
-############################################"
-# Fonctions d'insérer dans un CSV
-########################'#################"
+############################################
+# Insertion dans un CSV
+########################'#################
 
 def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):    
     # Récupère tous les codes ROMES et type contrat, On peut avoir max que 3150 résultats max par requete, pagination inclus
