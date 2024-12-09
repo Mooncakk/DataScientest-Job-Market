@@ -7,3 +7,6 @@ app = FastAPI()
 @app.get("/france_travail/verify")
 async def verify():
     return {"message": "Hello World"}
+
+@app.get()
+
