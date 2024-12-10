@@ -91,7 +91,7 @@ df = df.select('titre', 'description', 'secteur', 'entreprise', 'code_postal','t
 
 df.write.format('jdbc')\
     .mode('overwrite')\
-    .option('url', 'jdbc:postgresql://postgres_db:5432/france_emplois')\
+    .option('url', 'jdbc:postgresql://localhost:5432/france_emplois')\
     .option('dbtable', 'Adzuna')\
     .option('driver', 'org.postgresql.Driver')\
     .option('user', 'admin').option('password', 'datascientest')\
