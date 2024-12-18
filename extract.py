@@ -155,6 +155,7 @@ def france_travail_yield(params):
 # Insertion dans un CSV
 ########################'#################
 
+# Insère les offres dans un CSV et utilise les référentiels en base de données.
 def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):    
     # Récupère tous les codes ROMES et type contrat, On peut avoir max que 3150 résultats max par requete, pagination inclus
     cur1 = create_cursor(conn)
@@ -195,11 +196,66 @@ def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):
         except Exception as e:                 
             print(f"Erreur lors du lancement de France_Travail_to_CSV dans extract.py : {e} ")   
 
+# Même chose mais utilise des CSVs
+def france_travail_to_CSV2(csv_name=f'offres_{date.today()}.csv'):
+    """ Génère un fichier CSV contenant les offres à partir des fichiers CSV existants."""
+
+    # Charger les types de contrats depuis le CSV
+    types_contrat = []
+    with open('referentiels/type_contrat.csv', mode='r', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            types_contrat.append(row['code_contrat'])
+
+    # Charger les métiers (codes ROME) depuis le CSV
+    codes_rome = []
+    with open('referentiels/metier.csv', mode='r', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            codes_rome.append(row['code_rome'])
+
+    buffer = []
+
+    # Écriture des offres dans le fichier CSV
+    with open(csv_name, 'a', newline='', encoding='utf-8') as csvfile:
+        
+        csv_offres = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+        try:
+            for type_contrat in types_contrat:
+                print(f"Traitement type contrat: {type_contrat} - {datetime.now()}")
+                for code_rome in codes_rome:
+                    time.sleep(0.05)
+                    for offre in france_travail_yield(params={'codeROME': code_rome, 'typeContrat': type_contrat}):
+                        buffer.append([
+                            offre.get('romeCode', None),
+                            offre.get('codeNAF', None),
+                            offre.get('typeContrat', None),
+                            offre.get('lieuTravail', {}).get('commune', None),
+                            offre.get('intitule', None),
+                            offre.get('entreprise', {}).get('nom', None),
+                            offre.get('dateCreation', None),
+                            f"{offre.get('salaire', {}).get('libelle', '')} {offre.get('salaire', {}).get('commentaire', '')} {offre.get('salaire', {}).get('complement1', '')} {offre.get('salaire', {}).get('complement2', '')}",
+                            (offre.get('description', None) or '').replace('\n', ' ')
+                        ])
+
+                        # Écriture par lot
+                        if len(buffer) >= 25:
+                            csv_offres.writerows(buffer)
+                            buffer = []
+
+            # Écrire les éléments restants dans le buffer
+            if buffer:
+                csv_offres.writerows(buffer)
+
+        except Exception as e:
+            print(f"Erreur lors de l'exécution de france_travail_to_CSV : {e}")
+
 
 
 
 ######################################
-# Fonctions liées aux référentiels
+# Fonctions liées aux référentiels - Mode Insertion en base de données 
 ####################################
 
 def create_cursor(conn):
@@ -279,6 +335,77 @@ def load_repository_table(conn, cur):
     load_type_contrat(conn, cur)
 
 
+######################################
+# Fonctions liées aux référentiels - Mode CSV
+####################################
+
+# Fonction générique pour écrire dans un fichier CSV
+def write_to_csv(file_name, fieldnames, rows):
+    try:
+        with open(file_name, mode='w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"Données écrites avec succès dans {file_name}")
+    except Exception as e:
+        print(f"Erreur lors de l'écriture dans {file_name} : {e}")
+
+# Charger les métiers dans un fichier CSV
+def load_metier_to_csv():
+    """ Charge le référentiel des métiers (code ROME) dans un fichier CSV """
+    file_name = 'metier.csv'
+    fieldnames = ['code_rome', 'libelle']
+    rows = [{'code_rome': metier.get('code'), 'libelle': metier.get('libelle')} for metier in getall_code_rome()]
+    write_to_csv(file_name, fieldnames, rows)
+
+# Charger les communes dans un fichier CSV
+def load_commune_to_csv():
+    """ Charge le référentiel Communes dans un fichier CSV """
+    file_name = 'commune.csv'
+    fieldnames = ['code_commune', 'code_postal', 'libelle', 'code_departement']
+    rows = [
+        {'code_commune': '00000', 'code_postal': 00000, 'libelle': 'Noname', 'code_departement': '000'},
+        {'code_commune': '75056', 'code_postal': 75000, 'libelle': 'Paris', 'code_departement': '75'},
+        {'code_commune': '69152', 'code_postal': 69310, 'libelle': 'Paris', 'code_departement': '75'},
+        {'code_commune': '13055', 'code_postal': 13000, 'libelle': 'Marseille', 'code_departement': '13'},
+        {'code_commune': '69123', 'code_postal': 69000, 'libelle': 'Lyon', 'code_departement': '69'},
+        {'code_commune': '50602', 'code_postal': 50110, 'libelle': 'Tourlaville', 'code_departement': '50'}
+    ]
+    # Ajouter les données depuis getall_communes
+    for commune in getall_communes():
+        rows.append({
+            'code_commune': commune.get('code'),
+            'code_postal': commune.get('codePostal'),
+            'libelle': commune.get('libelle'),
+            'code_departement': commune.get('codeDepartement')
+        })
+    write_to_csv(file_name, fieldnames, rows)
+
+# Charger les types de contrats dans un fichier CSV
+def load_type_contrat_to_csv():
+    """ Charge le référentiel des Types de contrats dans un fichier CSV """
+    file_name = 'type_contrat.csv'
+    fieldnames = ['code_contrat', 'libelle']
+    rows = [{'code_contrat': type.get('code'), 'libelle': type.get('libelle')} for type in getall_type_contrat()]
+    write_to_csv(file_name, fieldnames, rows)
+
+# Charger les codes NAF dans un fichier CSV
+def load_code_naf_to_csv():
+    """ Charge le référentiel des codes NAF dans un fichier CSV """
+    file_name = 'secteur.csv'
+    fieldnames = ['code_naf', 'libelle']
+    rows = [{'code_naf': '00.00X', 'libelle': 'NoName'}]
+    rows.extend([
+        {'code_naf': secteur.get('code'), 'libelle': secteur.get('libelle')} for secteur in getall_code_naf()
+    ])
+    write_to_csv(file_name, fieldnames, rows)
+
+
+
+#############################
+# Générateur récupérant les les référentiels depuis leurs API respectives
+#############################
+
 def getall_code_rome():
         """Récupère tous les codes Romes du réferentiel de France TRavail.
         Un code NAF représente un métier
@@ -333,21 +460,25 @@ def main():
         """for offre in yield_offres_france_travail():
                 pprint.pp(offre)
                 france_travail_toCsv(params={'codeROME': 'M1403'})"""
-        
-        
-
-
-        conn = load.postgres_bdd_auth(database="jobmarket",
-                            host="localhost",
-                            user="postgres",
-                            password="postgres",
-                            port="5432")
-        cur = create_cursor(conn)
-        load_repository_table(conn, cur)
-
-
-
         #france_travail_to_CSV(conn)
+        france_travail_to_CSV2()
+
+
+        #load_metier_to_csv()
+        #load_commune_to_csv()
+        #load_type_contrat_to_csv()
+        #load_code_naf_to_csv()
+        
+
+        
+
+        #conn = load.postgres_bdd_auth(database="jobmarket", host="localhost", user="postgres", password="postgres", port="5432")
+        #cur = create_cursor(conn)
+        #load_repository_table(conn, cur)
+
+
+
+        
         
           
 if __name__ == "__main__":
