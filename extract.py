@@ -4,6 +4,7 @@ import csv
 from datetime import date, datetime
 import time
 import load
+import psycopg2
 
 # TO DO : mettre dans une variable global l'access token pour ne pas faire un appel a access token a chaque besoin d'afficher des offres. Un token est valable ^l
 
@@ -61,6 +62,19 @@ def get_access_token():
         
         response = post_request(url, params=params)
         return response['access_token']
+
+
+def postgres_bdd_auth(database, host, user, password, port):
+    try:
+        conn = psycopg2.connect(database=database,
+                                host=host,
+                                user=user,
+                                password=password,
+                                port=port)
+        print(f"Vous êtes connectés à postgres sur la bd \"{database}\" et le port \"{port}\"")
+    except Exception as e:
+        print(f"Erreur: {e}")
+    return conn
 
 
 ############################################"
@@ -143,10 +157,10 @@ def france_travail_yield(params):
 
 def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):    
     # Récupère tous les codes ROMES et type contrat, On peut avoir max que 3150 résultats max par requete, pagination inclus
-    cur1 = load.create_cursor(conn)
+    cur1 = create_cursor(conn)
     cur1.execute("SELECT * from Type_contrat")
     types_contrat = cur1.fetchall()
-    cur2 = load.create_cursor(conn)
+    cur2 = create_cursor(conn)
    
 
     buffer = []
@@ -181,9 +195,90 @@ def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):
         except Exception as e:                 
             print(f"Erreur lors du lancement de France_Travail_to_CSV dans extract.py : {e} ")   
 
+
+
+
 ######################################
 # Fonctions liées aux référentiels
 ####################################
+
+def create_cursor(conn):
+    try:
+        return conn.cursor()
+    except Exception as e:
+        print(f"Erreur: {e}")
+    
+
+def load_metier(conn, cur):
+    """ Charge le réferentiel des métiers (code ROME) dans la table Metier"""
+    try:
+        for metier in getall_code_rome():
+            cur.execute(f"INSERT INTO METIER (code_rome, libelle) VALUES (%s,%s)", (metier.get('code') ,metier.get('libelle')))
+        conn.commit()
+    except Exception as e:
+        print(f"Erreur lors de l'insertion des données dans Metier : {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+def load_commune(conn, cur):
+    """ Charge le réferentiel Communes dans la table Commune"""
+    try:
+        # Listes des codes hors référentiels
+        cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('00000', 00000, 'Noname', '000'))
+        cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('75056', 75000, 'Paris', '75'))
+        cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('69152', 69310, 'Paris', '75'))
+        cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('13055', 13000, 'Marseille', '13'))
+        cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('69123', 69000, 'Lyon', '69'))
+        cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('50602', 50110, 'Tourlaville', '50'))
+        for commune in getall_communes():
+            cur.execute("SELECT 1 FROM Commune WHERE code_commune = %s", (commune.get('code'),))
+            exists = cur.fetchone()
+            if not exists:
+                cur.execute(
+                    "INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",
+                    (commune.get('code'), commune.get('codePostal'), commune.get('libelle'), commune.get('codeDepartement'))
+                )
+        conn.commit()
+    except Exception as e:
+        print(f"Erreur lors de l'insertion des données dans Commune : {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+    
+def load_type_contrat(conn, cur):
+    """ Charge le référentiel des Types de contrats dans la table type_contrat"""
+    try:
+        for type in getall_type_contrat():
+            cur.execute(f"INSERT INTO Type_contrat (code_contrat, libelle) VALUES (%s,%s)", (type.get('code') ,type.get('libelle')))
+        conn.commit()
+    except Exception as e:
+        print(f"Erreur lors de l'insertion des données dans Type_Contrat : {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+def load_code_naf(conn, cur):
+    """ Charge dans la table type_contrat, le code contrat et son libelle"""
+    try:
+        cur.execute(f"INSERT INTO Secteur (code_naf, libelle) VALUES (%s,%s)", ('00.00X' , 'NoName'))
+        for secteur in getall_code_naf():
+            cur.execute(f"INSERT INTO Secteur (code_naf, libelle) VALUES (%s,%s)", (secteur.get('code') ,secteur.get('libelle')))
+        conn.commit()
+    except Exception as e:
+        print(f"Erreur lors de l'insertion des données dans Secteur : {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+def load_repository_table(conn, cur):
+    "Charge les données des référentiels de France Travail dans chacune des tables : Secteur, Commune, Metier, Type_contrat"
+    load_code_naf(conn, cur)
+    load_commune(conn, cur)
+    load_metier(conn, cur)
+    load_type_contrat(conn, cur)
+
+
 def getall_code_rome():
         """Récupère tous les codes Romes du réferentiel de France TRavail.
         Un code NAF représente un métier
@@ -240,13 +335,19 @@ def main():
                 france_travail_toCsv(params={'codeROME': 'M1403'})"""
         
         
+
+
         conn = load.postgres_bdd_auth(database="jobmarket",
                             host="localhost",
                             user="postgres",
                             password="postgres",
                             port="5432")
-        
-        france_travail_to_CSV(conn)
+        cur = create_cursor(conn)
+        load_repository_table(conn, cur)
+
+
+
+        #france_travail_to_CSV(conn)
         
           
 if __name__ == "__main__":
