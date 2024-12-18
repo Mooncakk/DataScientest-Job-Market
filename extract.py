@@ -197,7 +197,7 @@ def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):
             print(f"Erreur lors du lancement de France_Travail_to_CSV dans extract.py : {e} ")   
 
 # Même chose mais utilise des CSVs
-def france_travail_to_CSV2(csv_name=f'offres_{date.today()}.csv'):
+def france_travail_to_CSV2(csv_name=f'offres{date.today()}.csv'):
     """ Génère un fichier CSV contenant les offres à partir des fichiers CSV existants."""
 
     # Charger les types de contrats depuis le CSV
@@ -219,7 +219,7 @@ def france_travail_to_CSV2(csv_name=f'offres_{date.today()}.csv'):
     # Écriture des offres dans le fichier CSV
     with open(csv_name, 'a', newline='', encoding='utf-8') as csvfile:
         
-        csv_offres = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
 
         try:
             for type_contrat in types_contrat:
