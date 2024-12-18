@@ -4,6 +4,9 @@ import pprint
 from datetime import date
 
 #TODO : Transformer le main en fonction
+#exemple de requete : curl -X GET http://127.0.0.1:8000/france_travail/most_recruiting_city/H1206
+
+
 
 def postgres_bdd_auth(database, host, user, password, port):
     try:
@@ -93,7 +96,12 @@ def load_repository_table(conn, cur):
     load_type_contrat(conn, cur)
 
 def insert_France_travail_to_BD(conn, csv_name=f"offres{date.today()}_processed.csv"):
+    """
+    Fonction utilisé pour insérer dans la BD l'extraction des offres d'emploi de France Travail"""
     cur = create_cursor(conn)
+    cur.execute("Delete from offre")
+    conn.commit()
+    
     try : 
         with open(csv_name, 'r') as file:
             sql_command = "COPY offre (code_rome,code_naf, code_contrat,code_commune, intitule, nom_entreprise, date_creation, salaire, description_) FROM STDIN WITH DELIMITER ',' CSV QUOTE '|' HEADER ;"
@@ -116,7 +124,7 @@ def get_most_recruiting_sector(conn):
                 ORDER BY  \
                     nombre_offres DESC\
                 LIMIT 5;")
-    return cur
+    return cur.fetchall()
 
 def get_most_recruiting_job(conn):
     cur = create_cursor(conn)
@@ -126,7 +134,7 @@ def get_most_recruiting_job(conn):
     GROUP BY m.code_rome, m.libelle \
     ORDER BY nombre_offres DESC \
     LIMIT 10;")
-    return cur
+    return cur.fetchall()
 
 def get_most_recruiting_city(conn):
     cur = create_cursor(conn)
@@ -135,7 +143,7 @@ def get_most_recruiting_city(conn):
     JOIN Commune c ON o.code_commune = c.code_commune \
     GROUP BY c.code_commune, c.libelle \
     ORDER BY nombre_offres DESC LIMIT 10")
-    return cur
+    return cur.fetchall()
 
 def get_data_engineer_most_recruiting_city(conn):
     cur = create_cursor(conn)
@@ -151,7 +159,23 @@ def get_data_engineer_most_recruiting_city(conn):
     GROUP BY c.code_commune, c.libelle \
     ORDER BY nombre_offres DESC \
     LIMIT 10;")
-    return cur
+    return cur.fetchall()
+
+def get_most_recruiting_city_with_code_rome(conn, codeRome):
+    """
+    Retourne les villes qui recrutent le plus pour un code Rome donné
+    """
+    cur = create_cursor(conn)
+    print(cur)
+    cur.execute(f"SELECT c.code_commune, c.libelle AS ville, COUNT(o.id_offre) AS nombre_offres \
+    FROM Offre o \
+    JOIN Commune c ON o.code_commune = c.code_commune \
+    WHERE o.code_rome = '{codeRome}' \
+    GROUP BY c.code_commune, c.libelle \
+    ORDER BY nombre_offres DESC \
+    LIMIT 10;")
+    return cur.fetchall()
+
 
 def main():
     
@@ -160,38 +184,26 @@ def main():
                             user="postgres",
                             password="postgres",
                             port="5432")
-    cur_secteur = get_most_recruiting_sector(conn)
-    for secteur in cur_secteur.fetchall():
-        print(secteur)
-    conn.commit()
-    print("#############Job qui recrute le plus##############")
-    cur_jobs = get_most_recruiting_job(conn)
-    for job in cur_jobs.fetchall():
-        print(job)
-    conn.commit()
+    
+    insert_France_travail_to_BD(conn)
 
-    print("############# Villes qui recrutent le plus ##############")
-    cur_city = get_most_recruiting_city(conn)
-    for city in cur_city.fetchall():
-        print(city)
-    conn.commit()
-
-    print("############# Villes qui recrutent le plus de DE ##############")
-    cur_city_de = get_data_engineer_most_recruiting_city(conn)
-    for city in cur_city_de.fetchall():
-        print(city)
-    conn.commit()
+    """print("############# Villes qui recrutent avec Code Rome associé ##############")
+    cur_city_code_rome = get_most_recruiting_city_with_code_rome(conn, 'A1413')
+    for city in cur_city_code_rome:
+        print(city)"""
+    
 
 
 
 
-    """cur = create_cursor(conn)
-    cur.execute(
-                    "INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",
-                    ('50015', 50272, 'ANNOVILLE', '50')
-                )
-    conn.commit()"""
-    #insert_France_travail_to_BD(conn)
+
+"""cur = create_cursor(conn)
+cur.execute(
+                "INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",
+                ('50602', 50110, 'Tourlaville', '50')
+            )
+conn.commit()"""
+#insert_France_travail_to_BD(conn)
     
     
 
