@@ -1,11 +1,18 @@
 import psycopg2
-import extract
+
 import pprint
 from datetime import date
 
 #TODO : Transformer le main en fonction
 #exemple de requete : curl -X GET http://127.0.0.1:8000/france_travail/most_recruiting_city/H1206
 
+
+def create_cursor(conn):
+    try:
+        return conn.cursor()
+    except Exception as e:
+        print(f"Erreur: {e}")
+    
 
 
 def postgres_bdd_auth(database, host, user, password, port):

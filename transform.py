@@ -1,4 +1,4 @@
-import extract
+import extract as extract
 import load
 import csv
 from datetime import date

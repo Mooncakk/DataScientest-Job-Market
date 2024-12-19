@@ -167,7 +167,7 @@ def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):
     buffer = []
         
     # Requete sur l'API France Travail en modifiant le paramètre Code ROME et insère dans le CSV
-    with open(csv_name, 'a', newline='') as csvfile:
+    with open(csv_name, 'a', newline='', encoding='utf-8') as csvfile:
         csv_offres = csv.writer(csvfile, delimiter=',', quotechar='|', )
         try: 
             for type_contrat in  types_contrat:
