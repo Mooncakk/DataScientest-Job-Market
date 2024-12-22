@@ -3,7 +3,6 @@ import pprint
 import csv
 from datetime import date, datetime
 import time
-import load
 import psycopg2
 
 # TO DO : mettre dans une variable global l'access token pour ne pas faire un appel a access token a chaque besoin d'afficher des offres. Un token est valable ^l
@@ -223,30 +222,27 @@ def france_travail_to_CSV2(csv_name=f'offres{date.today()}.csv'):
 
         try:
             for type_contrat in types_contrat:
+                print(types_contrat)
                 print(f"Traitement type contrat: {type_contrat} - {datetime.now()}")
                 for code_rome in codes_rome:
-                    time.sleep(0.05)
+                    #time.sleep(0.05)
                     for offre in france_travail_yield(params={'codeROME': code_rome, 'typeContrat': type_contrat}):
                         buffer.append([
-                            offre.get('romeCode', None),
-                            offre.get('codeNAF', None),
-                            offre.get('typeContrat', None),
-                            offre.get('lieuTravail', {}).get('commune', None),
-                            offre.get('intitule', None),
-                            offre.get('entreprise', {}).get('nom', None),
-                            offre.get('dateCreation', None),
-                            f"{offre.get('salaire', {}).get('libelle', '')} {offre.get('salaire', {}).get('commentaire', '')} {offre.get('salaire', {}).get('complement1', '')} {offre.get('salaire', {}).get('complement2', '')}",
-                            (offre.get('description', None) or '').replace('\n', ' ')
+                        offre.get('romeCode', None), 
+                        offre.get('codeNAF', None), 
+                        offre.get('typeContrat', None), 
+                        offre.get('lieuTravail', {}).get('commune', None) ,
+                        offre.get('intitule', None),
+                        offre.get('entreprise', {}).get('nom', None),
+                        offre.get('dateCreation', None), 
+                        str(offre.get('salaire',{}).get('libelle', None)) + ' ' + str(offre.get('salaire',{}).get('commentaire', None)) + ' ' + str(offre.get('salaire',{}).get('complement1', None)) + ' ' + str(offre.get('salaire',{}).get('complement2', None))  ,                                                
+                        (offre.get('description', None) or '').replace('\n',' ')
                         ])
-
+                        
                         # Écriture par lot
                         if len(buffer) >= 25:
                             csv_offres.writerows(buffer)
                             buffer = []
-
-            # Écrire les éléments restants dans le buffer
-            if buffer:
-                csv_offres.writerows(buffer)
 
         except Exception as e:
             print(f"Erreur lors de l'exécution de france_travail_to_CSV : {e}")
@@ -334,9 +330,26 @@ def load_repository_table(conn, cur):
     load_metier(conn, cur)
     load_type_contrat(conn, cur)
 
+######################################
+# Fonctions liées aux référentiels - CSV to BD 
+####################################
+
+def load_commune_csv_to_bd(conn, cur, csv_path='commune.csv'):
+    """Charge le référentiel des communes dans la table Commune depuis un fichier CSV via COPY."""
+    try:
+        with open(csv_path, mode='r', encoding='utf-8') as csvfile:
+            cur.copy_expert(
+                "COPY Commune (code_commune, code_postal, libelle, code_departement) FROM STDIN WITH CSV HEADER DELIMITER ','",
+                csvfile
+            )
+        conn.commit()
+    except Exception as e:
+        print(f"Erreur lors du chargement des données dans Commune : {e}")
+        conn.rollback()
+
 
 ######################################
-# Fonctions liées aux référentiels - Mode CSV
+# Fonctions liées aux référentiels - BD to CSV
 ####################################
 
 # Fonction générique pour écrire dans un fichier CSV
