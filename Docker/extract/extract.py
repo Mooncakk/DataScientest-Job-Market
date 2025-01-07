@@ -186,12 +186,12 @@ def france_travail_to_CSV(conn, csv_name=f'offres{date.today()}.csv'):
                         offre.get('dateCreation', None), 
                         str(offre.get('salaire',{}).get('libelle', None)) + ' ' + str(offre.get('salaire',{}).get('commentaire', None)) + ' ' + str(offre.get('salaire',{}).get('complement1', None)) + ' ' + str(offre.get('salaire',{}).get('complement2', None))  ,                                                
                         (offre.get('description', None) or '').replace('\n',' ')
+                        ])
                         
-                    ])
-                    # ecriture par lot 
-                    if len(buffer) >= 25:  
-                        csv_offres.writerows(buffer)
-                        buffer = []
+                        # Écriture par lot
+                        if len(buffer) >= 25:
+                            csv_offres.writerows(buffer)
+                            buffer = []
                 if buffer:
                     csv_offres.writerows(buffer)
                     buffer = []
@@ -241,14 +241,13 @@ def france_travail_to_CSV2(csv_name=f'offres{date.today()}.csv'):
                         (offre.get('description', None) or '').replace('\n',' ')
                         ])
                         
-                    # Écriture par lot
-                    if len(buffer) >= 25:
-                        csv_offres.writerows(buffer)
-                        buffer = []
+                        # Écriture par lot
+                        if len(buffer) >= 25:
+                            csv_offres.writerows(buffer)
+                            buffer = []
                 if buffer:
                     csv_offres.writerows(buffer)
                     buffer = []
-
         except Exception as e:
             print(f"Erreur lors de l'exécution de france_travail_to_CSV : {e}")
 
@@ -345,6 +344,7 @@ def load_commune(conn):
         cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('50015', 50660, 'Annoville', '50'))
         cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('75007', 70107, '7eme Paris', '75'))
         cur.execute("INSERT INTO Commune (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('01039', 1350, 'Beon', '01'))
+        cur.execute("INSERT INTO COMMUNE (code_commune, code_postal, libelle, code_departement) VALUES (%s, %s, %s, %s)",('85041', 64410, 'CEZAIS', '85'))
 
         for commune in getall_communes():
             cur.execute("SELECT 1 FROM Commune WHERE code_commune = %s", (commune.get('code'),))
