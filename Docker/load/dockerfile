@@ -1,0 +1,13 @@
+FROM python:latest
+### a faire après le container bd
+
+
+ADD load.py app/load.py
+ADD requirements.txt app/requirements/requirements.txt
+
+WORKDIR /app
+
+RUN mkdir data && pip install -r requirements/requirements.txt
+
+CMD ["python3", "load.py"]
+

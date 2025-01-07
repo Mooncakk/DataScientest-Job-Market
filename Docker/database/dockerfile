@@ -1,0 +1,9 @@
+FROM postgres:latest
+
+ENV POSTGRES_USER=admin
+ENV POSTGRES_PASSWORD=datascientest
+ENV POSTGRES_DB=france_emplois
+
+COPY tables/requetes.sql docker-entrypoint-initdb.d/requetes.sql
+
+EXPOSE 5432

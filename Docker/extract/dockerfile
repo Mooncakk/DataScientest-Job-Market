@@ -1,0 +1,16 @@
+FROM python:latest
+
+RUN mkdir -p /app/requirements /app/referentiels /app/data
+
+COPY requirements.txt /app/requirements/requirements.txt
+COPY referentiels/commune.csv /app/referentiels/commune.csv
+COPY referentiels/metier.csv /app/referentiels/metier.csv
+COPY referentiels/secteur.csv /app/referentiels/secteur.csv
+COPY referentiels/type_contrat.csv /app/referentiels/type_contrat.csv
+COPY ./extract.py /app/extract.py
+
+WORKDIR /app
+
+RUN pip install -r requirements/requirements.txt
+
+CMD ["python3", "extract.py"]

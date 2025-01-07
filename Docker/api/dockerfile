@@ -1,0 +1,14 @@
+FROM python:latest
+
+
+ADD load.py app/load.py
+ADD api.py app/api.py
+ADD requirements.txt app/requirements/requirements.txt
+
+WORKDIR /app
+
+RUN pip install -r requirements/requirements.txt
+
+EXPOSE 8000
+
+CMD ["uvicorn", "api:app","--host", "0.0.0.0" ,"--reload"]

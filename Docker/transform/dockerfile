@@ -1,0 +1,11 @@
+FROM python:latest
+
+ADD requirements.txt app/requirements/requirements.txt
+ADD transform.py app/transform.py
+
+WORKDIR /app
+
+
+RUN mkdir data && pip install -r requirements/requirements.txt
+
+CMD ["python3", "transform.py"]
