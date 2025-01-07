@@ -10,13 +10,13 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - container_network
+      - job_market_network
 
   ubuntu:
     container_name: data_processing
     image: mooncak/adzuna_data_processing:test
     networks:
-      - container_network
+      - job_market_network
 
 networks:
-  container_network:
+  job_market_network:
