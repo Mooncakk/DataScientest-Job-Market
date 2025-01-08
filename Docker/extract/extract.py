@@ -4,6 +4,8 @@ import csv
 from datetime import date, datetime
 import time
 import psycopg2
+import configparser
+
 
 # TO DO : mettre dans une variable global l'access token pour ne pas faire un appel a access token a chaque besoin d'afficher des offres. Un token est valable ^l
 
@@ -50,12 +52,15 @@ def get_request(lien, headers, params={}):
         return response.json()
 
 def get_access_token():
+        config = configparser.ConfigParser()
+        config.read('data/config')
+        
         url = 'https://entreprise.francetravail.fr/connexion/oauth2/access_token'
         params={
                             'realm'                         : '/partenaire',
                             'grant_type'                    : 'client_credentials',
-                            'client_id'                     : 'PAR_dashboardemploi_5a32d8b6e535dbcff8b4e9843c453f8d578fedea2ff53a698c59bbdc67326fd9',
-                            'client_secret'                 : 'ad1e7f22d705a20c7fb2de28ff6c8d48071d29b8836ed4ae0bffc09210aeb48c',
+                            'client_id'                     : f'{config["API_KEYS"]["client_id"]}',
+                            'client_secret'                 : f'{config["API_KEYS"]["client_secret"]}',
                             'scope'                         : 'o2dsoffre api_offresdemploiv2',
                     }
         
