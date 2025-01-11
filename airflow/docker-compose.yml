@@ -1,0 +1,24 @@
+services:
+  db:
+    container_name: postgres_db
+    image: postgres:v1
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: datascientest
+      POSTGRES_DB: france_emplois
+    ports:
+      - "5432:5432"
+    networks:
+      - project_network
+
+  api:
+    container_name: api
+    image: api:v1
+    ports:
+      - "8000:8000"
+    networks:
+      - project_network
+
+networks:
+  project_network:

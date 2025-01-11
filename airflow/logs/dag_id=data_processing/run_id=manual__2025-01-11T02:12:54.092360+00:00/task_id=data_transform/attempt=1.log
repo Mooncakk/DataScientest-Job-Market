@@ -1,0 +1,125 @@
+[2025-01-11T02:12:59.060+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2025-01-11T02:12:59.066+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: data_processing.data_transform manual__2025-01-11T02:12:54.092360+00:00 [queued]>
+[2025-01-11T02:12:59.069+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: data_processing.data_transform manual__2025-01-11T02:12:54.092360+00:00 [queued]>
+[2025-01-11T02:12:59.070+0000] {taskinstance.py:2866} INFO - Starting attempt 1 of 1
+[2025-01-11T02:12:59.077+0000] {taskinstance.py:2889} INFO - Executing <Task(DockerOperator): data_transform> on 2025-01-11 02:12:54.092360+00:00
+[2025-01-11T02:12:59.126+0000] {standard_task_runner.py:72} INFO - Started process 94535 to run task
+[2025-01-11T02:12:59.134+0000] {standard_task_runner.py:104} INFO - Running: ['airflow', 'tasks', 'run', 'data_processing', 'data_transform', 'manual__2025-01-11T02:12:54.092360+00:00', '--job-id', '64', '--raw', '--subdir', 'DAGS_FOLDER/job_market_dag.py', '--cfg-path', '/tmp/tmpif_mw33n']
+[2025-01-11T02:12:59.135+0000] {standard_task_runner.py:105} INFO - Job 64: Subtask data_transform
+[2025-01-11T02:12:59.233+0000] {task_command.py:467} INFO - Running <TaskInstance: data_processing.data_transform manual__2025-01-11T02:12:54.092360+00:00 [running]> on host bun
+[2025-01-11T02:12:59.333+0000] {taskinstance.py:3132} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='admin' AIRFLOW_CTX_DAG_ID='data_processing' AIRFLOW_CTX_TASK_ID='data_transform' AIRFLOW_CTX_EXECUTION_DATE='2025-01-11T02:12:54.092360+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2025-01-11T02:12:54.092360+00:00'
+[2025-01-11T02:12:59.335+0000] {logging_mixin.py:190} INFO - Task instance is in running state
+[2025-01-11T02:12:59.335+0000] {logging_mixin.py:190} INFO -  Previous state of the Task instance: queued
+[2025-01-11T02:12:59.335+0000] {logging_mixin.py:190} INFO - Current task name:data_transform state:running start_date:2025-01-11 02:12:59.066678+00:00
+[2025-01-11T02:12:59.335+0000] {logging_mixin.py:190} INFO - Dag name:data_processing and current dag run status:running
+[2025-01-11T02:12:59.335+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2025-01-11T02:12:59.597+0000] {docker.py:468} INFO - ::group::Pulling docker image adzuna_data_transform:v2
+[2025-01-11T02:13:01.171+0000] {taskinstance.py:3311} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/docker/api/client.py", line 275, in _raise_for_status
+    response.raise_for_status()
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: http+docker://localhost/v1.47/images/create?tag=v2&fromImage=adzuna_data_transform
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/taskinstance.py", line 767, in _execute_task
+    result = _execute_callable(context=context, **execute_callable_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/taskinstance.py", line 733, in _execute_callable
+    return ExecutionCallableRunner(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/utils/operator_helpers.py", line 252, in run
+    return self.func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/baseoperator.py", line 422, in wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/providers/docker/operators/docker.py", line 470, in execute
+    for output in self.cli.pull(self.image, stream=True, decode=True):
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/docker/api/image.py", line 429, in pull
+    self._raise_for_status(response)
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/docker/api/client.py", line 277, in _raise_for_status
+    raise create_api_error_from_http_exception(e) from e
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/docker/errors.py", line 39, in create_api_error_from_http_exception
+    raise cls(e, response=response, explanation=explanation) from e
+docker.errors.ImageNotFound: 404 Client Error for http+docker://localhost/v1.47/images/create?tag=v2&fromImage=adzuna_data_transform: Not Found ("pull access denied for adzuna_data_transform, repository does not exist or may require 'docker login': denied: requested access to the resource is denied")
+[2025-01-11T02:13:01.217+0000] {logging_mixin.py:190} INFO - Task instance in failure state
+[2025-01-11T02:13:01.218+0000] {logging_mixin.py:190} INFO - Task start:2025-01-11 02:12:59.066678+00:00 end:2025-01-11 02:13:01.217408+00:00 duration:2.15073
+[2025-01-11T02:13:01.218+0000] {logging_mixin.py:190} INFO - Task:<Task(DockerOperator): data_transform> dag:<DAG: data_processing> dagrun:<DagRun data_processing @ 2025-01-11 02:12:54.092360+00:00: manual__2025-01-11T02:12:54.092360+00:00, state:running, queued_at: 2025-01-11 02:12:54.146910+00:00. externally triggered: True>
+[2025-01-11T02:13:01.218+0000] {logging_mixin.py:190} INFO - Failure caused by 404 Client Error for http+docker://localhost/v1.47/images/create?tag=v2&fromImage=adzuna_data_transform: Not Found ("pull access denied for adzuna_data_transform, repository does not exist or may require 'docker login': denied: requested access to the resource is denied")
+[2025-01-11T02:13:01.218+0000] {taskinstance.py:1225} INFO - Marking task as FAILED. dag_id=data_processing, task_id=data_transform, run_id=manual__2025-01-11T02:12:54.092360+00:00, execution_date=20250111T021254, start_date=20250111T021259, end_date=20250111T021301
+[2025-01-11T02:13:01.255+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2025-01-11T02:13:01.255+0000] {standard_task_runner.py:124} ERROR - Failed to execute job 64 for task data_transform (404 Client Error for http+docker://localhost/v1.47/images/create?tag=v2&fromImage=adzuna_data_transform: Not Found ("pull access denied for adzuna_data_transform, repository does not exist or may require 'docker login': denied: requested access to the resource is denied"); 94535)
+Traceback (most recent call last):
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/docker/api/client.py", line 275, in _raise_for_status
+    response.raise_for_status()
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: http+docker://localhost/v1.47/images/create?tag=v2&fromImage=adzuna_data_transform
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py", line 117, in _start_by_fork
+    ret = args.func(args, dag=self.dag)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/cli/cli_config.py", line 49, in command
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/utils/cli.py", line 116, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/cli/commands/task_command.py", line 483, in task_run
+    task_return_code = _run_task_by_selected_method(args, _dag, ti)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/cli/commands/task_command.py", line 256, in _run_task_by_selected_method
+    return _run_raw_task(args, ti)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/cli/commands/task_command.py", line 341, in _run_raw_task
+    return ti._run_raw_task(
+           ^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/utils/session.py", line 97, in wrapper
+    return func(*args, session=session, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/taskinstance.py", line 3005, in _run_raw_task
+    return _run_raw_task(
+           ^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/taskinstance.py", line 273, in _run_raw_task
+    TaskInstance._execute_task_with_callbacks(
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/taskinstance.py", line 3159, in _execute_task_with_callbacks
+    result = self._execute_task(context, task_orig)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/taskinstance.py", line 3183, in _execute_task
+    return _execute_task(self, context, task_orig)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/taskinstance.py", line 767, in _execute_task
+    result = _execute_callable(context=context, **execute_callable_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/taskinstance.py", line 733, in _execute_callable
+    return ExecutionCallableRunner(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/utils/operator_helpers.py", line 252, in run
+    return self.func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/models/baseoperator.py", line 422, in wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/airflow/providers/docker/operators/docker.py", line 470, in execute
+    for output in self.cli.pull(self.image, stream=True, decode=True):
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/docker/api/image.py", line 429, in pull
+    self._raise_for_status(response)
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/docker/api/client.py", line 277, in _raise_for_status
+    raise create_api_error_from_http_exception(e) from e
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adm1n/job_market/.venv/lib/python3.12/site-packages/docker/errors.py", line 39, in create_api_error_from_http_exception
+    raise cls(e, response=response, explanation=explanation) from e
+docker.errors.ImageNotFound: 404 Client Error for http+docker://localhost/v1.47/images/create?tag=v2&fromImage=adzuna_data_transform: Not Found ("pull access denied for adzuna_data_transform, repository does not exist or may require 'docker login': denied: requested access to the resource is denied")
+[2025-01-11T02:13:01.285+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 1
+[2025-01-11T02:13:01.305+0000] {taskinstance.py:3895} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2025-01-11T02:13:01.306+0000] {local_task_job_runner.py:245} INFO - ::endgroup::
