@@ -28,27 +28,6 @@ def postgres_bdd_auth(database, host, user, password, port):
     return conn
 
 
-
-def insert_France_travail_to_BD(conn, csv_name=f"offres{date.today()}_processed.csv"):
-    """
-    Fonction utilisé pour insérer dans la BD l'extraction des offres d'emploi de France Travail"""
-    cur = create_cursor(conn)
-    cur.execute("Delete from offre")
-    conn.commit()
-    
-    try : 
-        with open(csv_name, 'r') as file:
-            sql_command = "COPY offre (code_rome,code_naf, code_contrat,code_commune, intitule, nom_entreprise, date_creation, salaire, description_) FROM STDIN WITH DELIMITER ',' CSV QUOTE '|' HEADER ;"
-            cur.copy_expert(sql_command, file)
-            conn.commit()  
-
-    except Exception as e: 
-        print("L'exception est la suivante : " + str(e) ) 
-        print("l'exception s'est lancé lors de la commande SQL : " + sql_command )
-        conn.rollback()
-    finally:
-        conn.close()
-
 def insert_France_travail_to_BD_in_container(csv_name=f"data/offres{date.today()}_processed.csv"):
     """
     Fonction utilisé pour insérer dans la BD l'extraction des offres d'emploi de France Travail_ connexion modifié pour foncitonner dans les container du projet Job Market"""
@@ -61,17 +40,66 @@ def insert_France_travail_to_BD_in_container(csv_name=f"data/offres{date.today()
     cur.execute("Delete from offre")
     conn.commit()
 
+    # La table temporaire va permettre d'insérer en base de données bien qu'une commune ne soit pas présente dans la table Commune (Contrainte de clé étrangère)
+    # On COPY le CSV dans la table temporaire, On insère dans la table Offre les enregistrements de la table temporaire dont le code Commune existe dans la table Commune.
+    # Ensuite on affiche dans le terminal les codes communes n'existant pas dans la table pour les insérer dans la base de données en ajoutant le nouvel enregistrement a la main dans requete.sql et bien sur on oublie pas de re build l'image de la database pour que Commune se crée avec la nouvelle Commune
+    cur.execute("""
+    CREATE TEMP TABLE temp_offre (
+        code_rome VARCHAR(5),
+        code_naf VARCHAR(6),
+        code_contrat VARCHAR(3),
+        code_commune VARCHAR(5),
+        intitule VARCHAR(500),
+        nom_entreprise VARCHAR(1000),
+        date_creation DATE,
+        salaire VARCHAR(1000),
+        description_ VARCHAR(10000)
+    )
+    """)
+    conn.commit()
+
     try : 
         with open(csv_name, 'r') as file:
-            sql_command = "COPY offre (code_rome,code_naf, code_contrat,code_commune, intitule, nom_entreprise, date_creation, salaire, description_) FROM STDIN WITH DELIMITER ',' CSV QUOTE '|' HEADER ;"
+            sql_command = "COPY temp_offre (code_rome,code_naf, code_contrat,code_commune, intitule, nom_entreprise, date_creation, salaire, description_) FROM STDIN WITH DELIMITER ',' CSV QUOTE '|' HEADER;"
             cur.copy_expert(sql_command, file)
             conn.commit()  
+
+        # on insère uniquement les lignes avec des communes existant dans notre referentiel
+        cur.execute("""
+        INSERT INTO offre (code_rome, code_naf, code_contrat, code_commune, intitule, nom_entreprise, date_creation, salaire, description_)
+        SELECT code_rome, code_naf, code_contrat, code_commune, intitule, nom_entreprise, date_creation, salaire, description_
+        FROM temp_offre
+        WHERE code_commune IN (SELECT code_commune FROM Commune)
+          AND code_contrat IN (SELECT code_contrat FROM Type_contrat)
+          AND code_naf IN (SELECT code_naf FROM Secteur)
+          AND code_rome IN (SELECT code_rome FROM Metier);
+        """)
+        conn.commit()
+
+        # On identifie les codes Communes n'existant pas dans Commune
+        cur.execute("""
+        SELECT DISTINCT code_commune
+        FROM temp_offre
+        WHERE code_commune NOT IN (SELECT code_commune FROM Commune)
+          OR code_contrat NOT IN (SELECT code_contrat FROM Type_contrat)
+          OR code_naf NOT IN (SELECT code_naf FROM Secteur)
+          OR code_rome NOT IN (SELECT code_rome FROM Metier);
+        """)
+        communes_not_in_commune_table = cur.fetchall()
+
+        # On les affiche ici pour les ajouter à la main dans requete SQL, on peut trouver les informations des Communes 
+        if communes_not_in_commune_table:
+            print("Les code_commune problématiques sont :")
+            for code in communes_not_in_commune_table:
+                print(code[0])
 
     except Exception as e: 
         print("L'exception est la suivante : " + str(e) ) 
         print("l'exception s'est lancé lors de la commande SQL : " + sql_command )
         conn.rollback()
     finally:
+        cur.execute("DROP TABLE temp_offre")
+        conn.commit()
         conn.close()
     
 def get_most_recruiting_sector(conn):
