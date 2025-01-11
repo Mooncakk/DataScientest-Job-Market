@@ -42,7 +42,7 @@ with DAG(
 
     france_travail_extract = DockerOperator(
             task_id='france_travail_data_extraction',
-            image='aurel_extract_dock:v3',
+            image='mooncak/france_travail_extract:1.0',
             auto_remove='success',
             mounts=[
                 Mount(source=f'{AIRFLOW_HOME}/data/france_travail_ressources/api_key', target='/app/api_key',
@@ -72,8 +72,12 @@ with DAG(
         python_callable=update_csv
     )
 
+    france_travail_load= PythonOperator(
+        task_id='france_travail_data_load',
+        python_callable=load_main
+    )
 
 
 init_ >> [france_travail_extract, adzuna_extract]
+france_travail_extract >> france_travail_transform >> france_travail_load
 adzuna_extract >> adzuna_data_transform
-france_travail_extract >> france_travail_transform

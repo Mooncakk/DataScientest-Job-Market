@@ -1,7 +1,7 @@
 services:
   db:
     container_name: postgres_db
-    image: postgres:v1
+    image: postgres:latest
     restart: always
     environment:
       POSTGRES_USER: admin
@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: france_emplois
     ports:
       - "5432:5432"
+    volumes:
+      - ${PWD}/data/france_travail_ressources/sql:/docker-entrypoint-initdb.d
     networks:
       - project_network
 
