@@ -32,7 +32,7 @@ def insert_France_travail_to_BD_in_container(csv_name=f"data/offres{date.today()
     """
     Fonction utilisé pour insérer dans la BD l'extraction des offres d'emploi de France Travail_ connexion modifié pour foncitonner dans les container du projet Job Market"""
     conn = postgres_bdd_auth(database="france_emplois",
-                            host="aurelclx_villani",
+                            host="aurelclx_villani", # renseigner le nom du container ou l'adresse IP en fonction de si le code est lancé en local ou en container
                             user="admin",
                             password="datascientest",
                             port="5432")
@@ -69,10 +69,7 @@ def insert_France_travail_to_BD_in_container(csv_name=f"data/offres{date.today()
         INSERT INTO offre (code_rome, code_naf, code_contrat, code_commune, intitule, nom_entreprise, date_creation, salaire, description_)
         SELECT code_rome, code_naf, code_contrat, code_commune, intitule, nom_entreprise, date_creation, salaire, description_
         FROM temp_offre
-        WHERE code_commune IN (SELECT code_commune FROM Commune)
-          AND code_contrat IN (SELECT code_contrat FROM Type_contrat)
-          AND code_naf IN (SELECT code_naf FROM Secteur)
-          AND code_rome IN (SELECT code_rome FROM Metier);
+        WHERE code_commune IN (SELECT code_commune FROM Commune);
         """)
         conn.commit()
 
@@ -80,10 +77,7 @@ def insert_France_travail_to_BD_in_container(csv_name=f"data/offres{date.today()
         cur.execute("""
         SELECT DISTINCT code_commune
         FROM temp_offre
-        WHERE code_commune NOT IN (SELECT code_commune FROM Commune)
-          OR code_contrat NOT IN (SELECT code_contrat FROM Type_contrat)
-          OR code_naf NOT IN (SELECT code_naf FROM Secteur)
-          OR code_rome NOT IN (SELECT code_rome FROM Metier);
+        WHERE code_commune NOT IN (SELECT code_commune FROM Commune);
         """)
         communes_not_in_commune_table = cur.fetchall()
 
