@@ -16,9 +16,12 @@ services:
 
   api:
     container_name: api
-    image: api:v1
+    image: mooncak/fastapi:v1
     ports:
       - "8000:8000"
+    volumes:
+      - ${PWD}/api:/app
+      - ${PWD}/dags/france_travail_scripts:/app/scripts
     networks:
       - project_network
 
