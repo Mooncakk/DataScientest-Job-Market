@@ -1,0 +1,35 @@
+[2025-01-11T03:12:25.338+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2025-01-11T03:12:25.343+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: data_processing.data_transform manual__2025-01-11T03:12:21.885905+00:00 [queued]>
+[2025-01-11T03:12:25.346+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: data_processing.data_transform manual__2025-01-11T03:12:21.885905+00:00 [queued]>
+[2025-01-11T03:12:25.346+0000] {taskinstance.py:2866} INFO - Starting attempt 1 of 1
+[2025-01-11T03:12:25.356+0000] {taskinstance.py:2889} INFO - Executing <Task(DockerOperator): data_transform> on 2025-01-11 03:12:21.885905+00:00
+[2025-01-11T03:12:25.360+0000] {standard_task_runner.py:72} INFO - Started process 111614 to run task
+[2025-01-11T03:12:25.369+0000] {standard_task_runner.py:104} INFO - Running: ['airflow', 'tasks', 'run', 'data_processing', 'data_transform', 'manual__2025-01-11T03:12:21.885905+00:00', '--job-id', '71', '--raw', '--subdir', 'DAGS_FOLDER/job_market_dag.py', '--cfg-path', '/tmp/tmpbpoewerp']
+[2025-01-11T03:12:25.371+0000] {standard_task_runner.py:105} INFO - Job 71: Subtask data_transform
+[2025-01-11T03:12:25.428+0000] {task_command.py:467} INFO - Running <TaskInstance: data_processing.data_transform manual__2025-01-11T03:12:21.885905+00:00 [running]> on host bun
+[2025-01-11T03:12:25.482+0000] {taskinstance.py:3132} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='admin' AIRFLOW_CTX_DAG_ID='data_processing' AIRFLOW_CTX_TASK_ID='data_transform' AIRFLOW_CTX_EXECUTION_DATE='2025-01-11T03:12:21.885905+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2025-01-11T03:12:21.885905+00:00'
+[2025-01-11T03:12:25.484+0000] {logging_mixin.py:190} INFO - Task instance is in running state
+[2025-01-11T03:12:25.484+0000] {logging_mixin.py:190} INFO -  Previous state of the Task instance: queued
+[2025-01-11T03:12:25.485+0000] {logging_mixin.py:190} INFO - Current task name:data_transform state:running start_date:2025-01-11 03:12:25.343978+00:00
+[2025-01-11T03:12:25.485+0000] {logging_mixin.py:190} INFO - Dag name:data_processing and current dag run status:running
+[2025-01-11T03:12:25.485+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2025-01-11T03:12:25.571+0000] {docker.py:345} INFO - Starting docker container from image adzuna_data_transform:latest
+[2025-01-11T03:12:28.566+0000] {docker.py:69} INFO - 25/01/11 03:12:28 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[2025-01-11T03:12:28.781+0000] {docker.py:69} INFO - Setting default log level to "WARN".
+[2025-01-11T03:12:28.782+0000] {docker.py:69} INFO - To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+[2025-01-11T03:12:35.275+0000] {docker.py:69} INFO - [Stage 2:>                                                          (0 + 1) / 1]
+[2025-01-11T03:12:35.466+0000] {docker.py:69} INFO - [Stage 2:>                  (0 + 1) / 1][Stage 3:>                  (0 + 0) / 1]
+[2025-01-11T03:12:37.087+0000] {docker.py:69} INFO - [Stage 3:>                                                          (0 + 1) / 1]
+[2025-01-11T03:12:38.521+0000] {docker.py:69} INFO - 
+[2025-01-11T03:12:39.696+0000] {docker.py:69} INFO - [Stage 7:>                                                          (0 + 1) / 2]
+[2025-01-11T03:12:39.893+0000] {docker.py:69} INFO - [Stage 7:=============================>                             (1 + 1) / 2]
+[2025-01-11T03:12:40.890+0000] {docker.py:69} INFO - 
+[2025-01-11T03:12:41.488+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2025-01-11T03:12:41.489+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=data_processing, task_id=data_transform, run_id=manual__2025-01-11T03:12:21.885905+00:00, execution_date=20250111T031221, start_date=20250111T031225, end_date=20250111T031241
+[2025-01-11T03:12:41.497+0000] {logging_mixin.py:190} INFO - Task instance in success state
+[2025-01-11T03:12:41.497+0000] {logging_mixin.py:190} INFO -  Previous state of the Task instance: running
+[2025-01-11T03:12:41.497+0000] {logging_mixin.py:190} INFO - Dag name:data_processing queued_at:2025-01-11 03:12:21.928325+00:00
+[2025-01-11T03:12:41.497+0000] {logging_mixin.py:190} INFO - Task hostname:bun operator:DockerOperator
+[2025-01-11T03:12:41.541+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2025-01-11T03:12:41.556+0000] {taskinstance.py:3895} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2025-01-11T03:12:41.557+0000] {local_task_job_runner.py:245} INFO - ::endgroup::
