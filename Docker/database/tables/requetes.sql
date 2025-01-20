@@ -36936,7 +36936,7 @@ COPY commune (code_commune, code_postal, libelle, code_departement) FROM stdin;
 02098	2400	BONNEIL	02
 50015	50660	Annoville	50
 75007	75107	7eme Paris	75
-85041	85410	CEZAIS	85
+85041	85410	Cezais	85
 01039	1350	Beon	01
 \.
 
