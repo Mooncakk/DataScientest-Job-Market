@@ -1,8 +1,16 @@
 from airflow import DAG
+from datetime import timedelta, datetime, date
+
 import os
-from datetime import timedelta, datetime
-from airflow.providers.docker.operators.docker import DockerOperator
-from docker.types import Mount
+import sys
+
+from airflow.operators.python import PythonOperator
+from airflow.contrib.sensors.file_sensor import FileSensor
+
+sys.path.append('/home/aurellechef/airflow/dags')
+import tasks.extract as extract
+import tasks.transform as transform
+import tasks.load as load
 
 
 # Rappel : le scheduler de Airflow lance le DAG quand 1 schedule interval s'est passé depuis la start_date au minmmum. Ex : si je veux faire dérouler un DAG de façon daily et que ma start date est today, il sera lancé pour la premiere fois demain
@@ -19,17 +27,43 @@ etl = DAG(
     }
 )
 
+sensor_scrapped_offers = FileSensor(
+        task_id="check_file_offre",
+        fs_conn_id="my_filesystem_connection",
+        filepath=f"/home/aurellechef/airflow/dags/data/offres{date.today()}.csv",
+        timeout=5 * 30,
+        mode='reschedule'
+    )
 
-extract_france_travail_task = DockerOperator(
+sensor_processed_offers = FileSensor(
+        task_id="check_file_offre_processed",
+        fs_conn_id="my_filesystem_connection",
+        filepath=f"/home/aurellechef/airflow/dags/data/offres{date.today()}_processed.csv",
+        timeout=5 * 30,
+        mode='reschedule'
+    )
+
+
+
+extract_france_travail_task = PythonOperator(
     task_id="extract_france_travail",
-    image="aurelclx/extract_france_travail:latest",
-    mounts=[Mount(
-        source=os.path.join(os.getcwd(), "data"), 
-        target="/app/data", 
-        type="bind"
-        )
-    ],
-    auto_remove=True,
-    api_version='auto',
+    python_callable=extract.main,
     dag=etl
 )
+
+transform_france_travail_task = PythonOperator(
+    task_id="transform_france_travail",
+    python_callable=transform.main,
+    dag=etl
+)
+
+load_france_travail_task = PythonOperator(
+    task_id="load_france_travail",
+    python_callable=load.main,
+    dag=etl
+)
+
+extract_france_travail_task >> sensor_scrapped_offers
+sensor_scrapped_offers >> transform_france_travail_task
+transform_france_travail_task >> sensor_processed_offers
+sensor_processed_offers >> load_france_travail_task
