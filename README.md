@@ -21,8 +21,11 @@ Le docker-compose lance :
   Une base de donnée Postgres
   un conteneur avec des scripts FastAPI qui exposent en local
   3 conteneurs dédiés au monitoring 
+  
     Prometheus
+    
     Postgresql-exporter
+    
     Grafana
 
 Une fois les cléfs récupéré
@@ -33,6 +36,7 @@ Les ports exposés :
 5432 : Postgres
 8000 : Api
 3000 : Grafana
+
 Le script airflow est a copier dans le repertoire ou vous executez vos DAGS
 
 
