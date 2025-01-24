@@ -18,8 +18,11 @@ Les transformations sont effectués par pandas et spark.
 2. Adzuna :
 
 Le docker-compose lance :
-  Une base de donnée Postgres
-  un conteneur avec des scripts FastAPI qui exposent en local
+
+    Une base de donnée Postgres  
+  
+    un conteneur avec des scripts FastAPI qui exposent en local
+  
   3 conteneurs dédiés au monitoring 
   
     Prometheus
