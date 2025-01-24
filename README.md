@@ -19,21 +19,22 @@ Les transformations sont effectués par pandas et spark.
 
 Le docker-compose lance :
 
-    Une base de donnée Postgres  
+Une base de donnée Postgres  
   
-    un conteneur avec des scripts FastAPI qui exposent en local
+un conteneur avec des scripts FastAPI qui exposent en local
   
-  3 conteneurs dédiés au monitoring 
+3 conteneurs dédiés au monitoring :
   
-    Prometheus
+Prometheus
     
-    Postgresql-exporter
+Postgresql-exporter
     
-    Grafana
+Grafana
 
-Une fois les cléfs récupéré
-cd airflow
-docker-compose up --build
+Une fois les cléfs récupérés :
+
+    cd airflow
+    docker-compose up --build
 
 Les ports exposés : 
 5432 : Postgres
