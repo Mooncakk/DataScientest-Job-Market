@@ -3,7 +3,7 @@ Ce projet a été réalise par :
 Aurélien CLAUX - aurelien.claux.pro@gmail.com
 Marvin NIMOH - 
 
-Ce projet à pour but de créer des indicateurs liés au marché du travail en France.
+Ce projet à pour but de créer des indicateurs liés au marché du travail en France en se basant sur des offres d'emploie de France Trvail et Adzuna
 
 Source de données : 
 France travail : https://francetravail.io
