@@ -15,6 +15,10 @@ Ce projet a pour ambition de créer des indicateurs clés liés au marché du tr
 - Analyser l'évolution des salaires
 - Cartographier la répartition géographique des offres d'emploi
 
+## 📈 Roadmap
+
+![Image](https://github.com/user-attachments/assets/ec404823-23ef-499d-8260-9bcf151341a7)
+
 ## 📊 Sources de données
 
 ### France Travail
@@ -82,6 +86,4 @@ Les ports exposés :
 
 Le script airflow est a copier dans le repertoire ou vous executez vos DAGS
 
-## 📈 Roadmap
 
-![Image](https://github.com/user-attachments/assets/ec404823-23ef-499d-8260-9bcf151341a7)
